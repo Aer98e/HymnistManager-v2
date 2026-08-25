@@ -51,25 +51,29 @@ export const authService = {
 
     const { data, error } = await supabase
       .from('user_preferences')
-      .select('*')
+      .select(`
+        *,
+        preferred_hymnal:hymnals(id, name)
+      `)
       .eq('user_id', user.id)
       .single();
 
     if (error && error.code !== 'PGRST116') throw error;
-    return data || { new_hymn_threshold: 5 };
+    return data || { new_hymn_threshold: 5, preferred_hymnal_id: null };
   },
 
-  async updateUserPreferences(threshold) {
+  async updateUserPreferences(preferences) {
     const user = await this.getCurrentUser();
     if (!user) throw new Error('Usuario no autenticado');
 
     const { data, error } = await supabase
       .from('user_preferences')
-      .upsert({ user_id: user.id, new_hymn_threshold: threshold })
+      .upsert({ user_id: user.id, ...preferences })
       .select()
       .single();
 
     if (error) throw error;
     return data;
   }
+
 };

@@ -36,9 +36,12 @@ HYMNS
 - `title_es`: `TEXT NOT NULL`
 - `title_original`: `TEXT`
 - `composer`: `TEXT`
+- `first_line`: `TEXT` (Primera línea de la 1ª estrofa)
+- `refrain_first_line`: `TEXT` (Primera línea del coro/estribillo)
 - `type`: `VARCHAR(20) NOT NULL DEFAULT 'private'` CHECK (`type` IN ('public', 'private'))
 - `created_by`: `UUID REFERENCES auth.users(id) ON DELETE SET NULL`
 - `created_at`: `TIMESTAMPTZ DEFAULT now()`
+
 
 #### `hymnals`
 - `id`: `UUID PRIMARY KEY DEFAULT gen_random_uuid()`
@@ -77,7 +80,11 @@ HYMNS
 
 #### `user_preferences`
 - `user_id`: `UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE`
+- `full_name`: `TEXT`
+- `preferred_hymnal_id`: `UUID REFERENCES hymnals(id) ON DELETE SET NULL`
 - `new_hymn_threshold`: `INT DEFAULT 5`
+
+
 
 #### `contexts`
 - `id`: `UUID PRIMARY KEY DEFAULT gen_random_uuid()`

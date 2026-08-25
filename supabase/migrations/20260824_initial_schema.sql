@@ -1,5 +1,6 @@
 -- ========================================================
 -- HYMN LIST MANAGER - SCHEMA DDL FOR SUPABASE (POSTGRESQL)
+-- Fully Idempotent Script (Can be re-run safely multiple times)
 -- ========================================================
 
 -- Enable UUID extension
@@ -21,10 +22,15 @@ CREATE TABLE IF NOT EXISTS public.hymns (
   title_es TEXT NOT NULL,
   title_original TEXT,
   composer TEXT,
+  first_line TEXT,
+  refrain_first_line TEXT,
   type VARCHAR(20) NOT NULL DEFAULT 'private' CHECK (type IN ('public', 'private')),
   created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.hymns ADD COLUMN IF NOT EXISTS first_line TEXT;
+ALTER TABLE public.hymns ADD COLUMN IF NOT EXISTS refrain_first_line TEXT;
+
 
 -- 3. HYMNALS
 CREATE TABLE IF NOT EXISTS public.hymnals (
@@ -36,6 +42,7 @@ CREATE TABLE IF NOT EXISTS public.hymnals (
   language_id BIGINT REFERENCES public.languages(id),
   created_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE public.hymnals ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
 
 -- 4. HYMNAL_HYMN
 CREATE TABLE IF NOT EXISTS public.hymnal_hymn (
@@ -78,8 +85,13 @@ ON CONFLICT DO NOTHING;
 -- 8. USER PREFERENCES (1:1 with auth.users)
 CREATE TABLE IF NOT EXISTS public.user_preferences (
   user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  full_name TEXT,
+  preferred_hymnal_id UUID REFERENCES public.hymnals(id) ON DELETE SET NULL,
   new_hymn_threshold INT DEFAULT 5
 );
+ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS full_name TEXT;
+ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS preferred_hymnal_id UUID REFERENCES public.hymnals(id) ON DELETE SET NULL;
+
 
 -- 9. CONTEXTS
 CREATE TABLE IF NOT EXISTS public.contexts (
@@ -112,7 +124,7 @@ CREATE TABLE IF NOT EXISTS public.user_hymn (
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   hymn_id UUID REFERENCES public.hymns(id) ON DELETE CASCADE,
   key_id INT REFERENCES public.notes(id),
-  key_mode VARCHAR(10) NOT NULL CHECK (key_mode IN ('major', 'minor')),
+  key_mode VARCHAR(10) DEFAULT 'major' CHECK (key_mode IN ('major', 'minor')),
   highest_note_id INT REFERENCES public.notes(id),
   highest_octave INT,
   lowest_note_id INT REFERENCES public.notes(id),
@@ -121,6 +133,7 @@ CREATE TABLE IF NOT EXISTS public.user_hymn (
   energy INT CHECK (energy BETWEEN 1 AND 5),
   PRIMARY KEY (user_id, hymn_id)
 );
+ALTER TABLE public.user_hymn ADD COLUMN IF NOT EXISTS key_mode VARCHAR(10) DEFAULT 'major' CHECK (key_mode IN ('major', 'minor'));
 
 -- ========================================================
 -- VIEWS FOR DYNAMIC ANALYTICS
@@ -165,48 +178,67 @@ ALTER TABLE public.user_preferences ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contexts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.programs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_hymn ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hymnal_hymn ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.program_hymn ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.category_hymn ENABLE ROW LEVEL SECURITY;
 
 -- Hymns Policies
+DROP POLICY IF EXISTS "Public hymns are viewable by all users" ON public.hymns;
 CREATE POLICY "Public hymns are viewable by all users" ON public.hymns FOR SELECT USING (type = 'public' OR created_by = auth.uid());
+
+DROP POLICY IF EXISTS "Users can create hymns" ON public.hymns;
 CREATE POLICY "Users can create hymns" ON public.hymns FOR INSERT WITH CHECK (auth.uid() = created_by);
+
+DROP POLICY IF EXISTS "Users can update own hymns" ON public.hymns;
 CREATE POLICY "Users can update own hymns" ON public.hymns FOR UPDATE USING (created_by = auth.uid());
 
 -- Hymnals Policies
+DROP POLICY IF EXISTS "Public hymnals are viewable by all" ON public.hymnals;
 CREATE POLICY "Public hymnals are viewable by all" ON public.hymnals FOR SELECT USING (type = 'public' OR created_by = auth.uid());
+
+DROP POLICY IF EXISTS "Users can create own hymnals" ON public.hymnals;
 CREATE POLICY "Users can create own hymnals" ON public.hymnals FOR INSERT WITH CHECK (auth.uid() = created_by);
+
+DROP POLICY IF EXISTS "Users can update own hymnals" ON public.hymnals;
 CREATE POLICY "Users can update own hymnals" ON public.hymnals FOR UPDATE USING (created_by = auth.uid());
 
 -- Categories Policies
+DROP POLICY IF EXISTS "Global and user categories viewable" ON public.categories;
 CREATE POLICY "Global and user categories viewable" ON public.categories FOR SELECT USING (created_by IS NULL OR created_by = auth.uid());
+
+DROP POLICY IF EXISTS "Users can insert own categories" ON public.categories;
 CREATE POLICY "Users can insert own categories" ON public.categories FOR INSERT WITH CHECK (created_by = auth.uid());
 
 -- User Preferences Policies
+DROP POLICY IF EXISTS "User manages own preferences" ON public.user_preferences;
 CREATE POLICY "User manages own preferences" ON public.user_preferences FOR ALL USING (user_id = auth.uid());
 
 -- Contexts Policies
+DROP POLICY IF EXISTS "User manages own contexts" ON public.contexts;
 CREATE POLICY "User manages own contexts" ON public.contexts FOR ALL USING (user_id = auth.uid());
 
 -- Programs Policies
+DROP POLICY IF EXISTS "User manages own programs" ON public.programs;
 CREATE POLICY "User manages own programs" ON public.programs FOR ALL USING (
   context_id IN (SELECT id FROM public.contexts WHERE user_id = auth.uid())
 );
 
 -- User Hymn Policies
+DROP POLICY IF EXISTS "User manages own hymn attributes" ON public.user_hymn;
 CREATE POLICY "User manages own hymn attributes" ON public.user_hymn FOR ALL USING (user_id = auth.uid());
 
--- Enable RLS on junction tables
-ALTER TABLE public.hymnal_hymn ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.program_hymn ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.category_hymn ENABLE ROW LEVEL SECURITY;
-
+-- Junction tables policies
+DROP POLICY IF EXISTS "Hymnal hymn viewable if hymnal is accessible" ON public.hymnal_hymn;
 CREATE POLICY "Hymnal hymn viewable if hymnal is accessible" ON public.hymnal_hymn FOR ALL USING (
   hymnal_id IN (SELECT id FROM public.hymnals WHERE type = 'public' OR created_by = auth.uid())
 );
 
+DROP POLICY IF EXISTS "Program hymn manageable by context owner" ON public.program_hymn;
 CREATE POLICY "Program hymn manageable by context owner" ON public.program_hymn FOR ALL USING (
   program_id IN (SELECT p.id FROM public.programs p JOIN public.contexts c ON c.id = p.context_id WHERE c.user_id = auth.uid())
 );
 
+DROP POLICY IF EXISTS "Category hymn manageable by category owner" ON public.category_hymn;
 CREATE POLICY "Category hymn manageable by category owner" ON public.category_hymn FOR ALL USING (
   category_id IN (SELECT id FROM public.categories WHERE created_by IS NULL OR created_by = auth.uid())
 );
@@ -215,14 +247,19 @@ CREATE POLICY "Category hymn manageable by category owner" ON public.category_hy
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.user_preferences (user_id, new_hymn_threshold)
-  VALUES (NEW.id, 5)
-  ON CONFLICT (user_id) DO NOTHING;
+  INSERT INTO public.user_preferences (user_id, full_name, new_hymn_threshold)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
+    5
+  )
+  ON CONFLICT (user_id) DO UPDATE 
+    SET full_name = EXCLUDED.full_name;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE TRIGGER on_auth_user_created
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-

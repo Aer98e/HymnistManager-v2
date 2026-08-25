@@ -9,7 +9,10 @@ export const programsService = {
         context:contexts(id, name),
         program_hymn (
           order_index,
-          hymn:hymns(*)
+          hymn:hymns(
+            *,
+            hymnal_hymn(number, hymnal_id)
+          )
         )
       `)
       .order('date', { ascending: false });
@@ -22,6 +25,7 @@ export const programsService = {
     if (error) throw error;
     return data;
   },
+
 
   async createProgram(contextId, date, name, hymnIds = []) {
     const { data: program, error: progError } = await supabase

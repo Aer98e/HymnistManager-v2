@@ -7,21 +7,31 @@ export async function renderHymnalsView() {
 
   return `
     <div style="padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
         <div>
           <h1 style="font-size: 1.8rem; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
             📖 Gestión de Himnarios
           </h1>
           <p style="color: var(--text-muted); font-size: 0.9rem;">
-            Crea colecciones de himnos o solicita la publicación de un nuevo himnario oficial
+            Crea o importa colecciones numeradas de himnos desde archivos CSV
           </p>
         </div>
-        <button id="create-hymnal-btn" style="
-          background: var(--gradient-primary); border: none; color: white; padding: 0.65rem 1.2rem;
-          border-radius: var(--radius-md); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;
-        ">
-          <span>➕</span> Nuevo Himnario
-        </button>
+
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+          <button id="import-csv-hymnal-btn" style="
+            background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main);
+            padding: 0.65rem 1rem; border-radius: var(--radius-md); font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;
+          ">
+            <span>📥</span> Importar desde CSV
+          </button>
+
+          <button id="create-hymnal-btn" style="
+            background: var(--gradient-primary); border: none; color: white; padding: 0.65rem 1.2rem;
+            border-radius: var(--radius-md); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;
+          ">
+            <span>➕</span> Nuevo Himnario
+          </button>
+        </div>
       </div>
 
       <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem;">
@@ -86,9 +96,92 @@ function renderHymnalCard(hymnal) {
 
 export function setupHymnalsEvents() {
   const createBtn = document.getElementById('create-hymnal-btn');
+  const importCsvBtn = document.getElementById('import-csv-hymnal-btn');
+
+  if (importCsvBtn) {
+    importCsvBtn.addEventListener('click', async () => {
+      const currentUser = await authService.getCurrentUser();
+      const isAdmin = currentUser && currentUser.app_metadata?.role === 'admin';
+
+      createModal('Importar Himnario desde Archivo CSV', `
+        <form style="display: flex; flex-direction: column; gap: 1rem;">
+          <div>
+            <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Nombre del Himnario *</label>
+            <input type="text" id="csv-hymnal-name" required placeholder="ej. Himnario Celebremos su Gloria" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Seleccionar Archivo CSV *</label>
+            <input type="file" id="csv-file-input" accept=".csv,text/csv" required style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+          </div>
+
+          ${isAdmin ? `
+            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.8rem; border-radius: var(--radius-sm);">
+              <label style="display: flex; align-items: center; gap: 0.5rem; color: var(--status-success); font-size: 0.85rem; font-weight: 600; cursor: pointer;">
+                <input type="checkbox" id="csv-is-public-chk" checked />
+                <span>🛡️ Publicar directamente como Himnario Oficial / Público</span>
+              </label>
+            </div>
+          ` : ''}
+
+          <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); padding: 0.8rem; border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--text-muted);">
+            <strong style="color: var(--primary);">Estructura esperada del CSV:</strong><br/>
+            <code>numero, titulo, compositor, titulo_original</code><br/>
+            Ejemplo:<br/>
+            <code>1, Santo Santo Santo, Reginald Heber, Holy Holy Holy</code><br/>
+            <code>2, Sublime Gracia, John Newton, Amazing Grace</code>
+          </div>
+
+          <div>
+            <button type="button" id="download-csv-template-btn" style="background: none; border: none; color: var(--accent); cursor: pointer; text-decoration: underline; font-size: 0.85rem;">
+              📄 Descargar Plantilla CSV de Ejemplo
+            </button>
+          </div>
+        </form>
+      `, async () => {
+        const name = document.getElementById('csv-hymnal-name').value;
+        const fileInput = document.getElementById('csv-file-input');
+        const isPublicChk = document.getElementById('csv-is-public-chk');
+        const isPublic = isPublicChk ? isPublicChk.checked : false;
+
+        if (!name || !fileInput.files || fileInput.files.length === 0) {
+          alert('Por favor completa el nombre e ingresa un archivo CSV válido.');
+          return;
+        }
+
+        const file = fileInput.files[0];
+        const text = await file.text();
+
+        try {
+          const res = await hymnalsService.importHymnalFromCSV(name, text, 1, isPublic);
+          alert(`¡Himnario "${res.hymnal.name}" creado con éxito como ${isPublic ? 'PÚBLICO' : 'PRIVADO'}! Se procesaron ${res.importedCount} himnos.`);
+          window.location.reload();
+        } catch (err) {
+          alert(`Error al importar CSV: ${err.message}`);
+        }
+      });
+
+
+      setTimeout(() => {
+        const tmplBtn = document.getElementById('download-csv-template-btn');
+        if (tmplBtn) {
+          tmplBtn.addEventListener('click', () => {
+            const templateText = "numero,titulo,compositor,titulo_original\n1,Santo Santo Santo,Reginald Heber,Holy Holy Holy\n2,Sublime Gracia,John Newton,Amazing Grace\n3,Castillo Fuerte,Martín Lutero,Ein feste Burg";
+            const blob = new Blob([templateText], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'plantilla_himnario.csv';
+            a.click();
+          });
+        }
+      }, 100);
+    });
+  }
+
   if (createBtn) {
     createBtn.addEventListener('click', () => {
-      createModal('Crear Nuevo Himnario', `
+      createModal('Crear Nuevo Himnario Manual', `
         <form id="create-hymnal-form" style="display: flex; flex-direction: column; gap: 1rem;">
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Nombre del Himnario *</label>

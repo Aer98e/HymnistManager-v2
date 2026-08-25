@@ -71,6 +71,8 @@ function renderHymnCards(hymns) {
         </div>
         ${hymn.title_original ? `<div style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">Original: ${hymn.title_original}</div>` : ''}
         <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.4rem;">Compositor: ${hymn.composer || 'Desconocido'}</div>
+        ${hymn.first_line ? `<div style="font-size: 0.8rem; color: var(--accent-cyan); margin-top: 0.4rem; font-style: italic;">🎶 1ª Estrofa: "${hymn.first_line}"</div>` : ''}
+        ${hymn.refrain_first_line ? `<div style="font-size: 0.8rem; color: var(--status-warning); margin-top: 0.2rem; font-style: italic;">✨ Coro: "${hymn.refrain_first_line}"</div>` : ''}
       </div>
 
       <div style="display: flex; justify-content: flex-end; gap: 0.5rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
@@ -111,6 +113,14 @@ export function setupHymnsEvents() {
             <input type="text" id="new-title-es" required style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
           </div>
           <div>
+            <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Primera Línea (1ª Estrofa)</label>
+            <input type="text" id="new-first-line" placeholder="ej. Sublime gracia del Señor que a un pecador salvó" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Primera Línea del Coro / Estribillo</label>
+            <input type="text" id="new-refrain-line" placeholder="ej. En la cruz, en la cruz, do primero vi la luz" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+          </div>
+          <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Título Original</label>
             <input type="text" id="new-title-orig" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
           </div>
@@ -121,13 +131,23 @@ export function setupHymnsEvents() {
         </form>
       `, async () => {
         const titleEs = document.getElementById('new-title-es').value;
+        const firstLine = document.getElementById('new-first-line').value;
+        const refrainLine = document.getElementById('new-refrain-line').value;
         const titleOrig = document.getElementById('new-title-orig').value;
         const composer = document.getElementById('new-composer').value;
-        await hymnsService.createHymn({ title_es: titleEs, title_original: titleOrig, composer });
+
+        await hymnsService.createHymn({
+          title_es: titleEs,
+          first_line: firstLine || null,
+          refrain_first_line: refrainLine || null,
+          title_original: titleOrig || null,
+          composer: composer || null
+        });
         filterHandler();
       });
     });
   }
+
 
   attachCardEvents();
 }

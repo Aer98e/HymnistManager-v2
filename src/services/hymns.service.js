@@ -14,8 +14,9 @@ export const hymnsService = {
       .order('title_es', { ascending: true });
 
     if (searchQuery) {
-      query = query.or(`title_es.ilike.%${searchQuery}%,title_original.ilike.%${searchQuery}%,composer.ilike.%${searchQuery}%`);
+      query = query.or(`title_es.ilike.%${searchQuery}%,title_original.ilike.%${searchQuery}%,composer.ilike.%${searchQuery}%,first_line.ilike.%${searchQuery}%,refrain_first_line.ilike.%${searchQuery}%`);
     }
+
 
     const { data, error } = await query;
     if (error) throw error;
