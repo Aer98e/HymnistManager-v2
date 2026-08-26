@@ -154,5 +154,101 @@ export const hymnsService = {
 
     if (error) throw error;
     return true;
+  },
+
+  async getHymnsByHymnalIds(hymnalIds = []) {
+    let query = supabase
+      .from('hymns')
+      .select(`
+        *,
+        hymnal_hymn (
+          number,
+          hymnal:hymnals (id, name)
+        )
+      `)
+      .order('title_es', { ascending: true });
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    if (hymnalIds && hymnalIds.length > 0) {
+      return data.filter(hymn =>
+        hymn.hymnal_hymn && hymn.hymnal_hymn.some(hh => hymnalIds.includes(hh.hymnal.id))
+      );
+    }
+
+    return data;
+  },
+
+  async getUserHymnsAll() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('user_hymn')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async bulkUpsertUserHymns(validRecords = []) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuario no autenticado');
+
+    if (!validRecords || validRecords.length === 0) return true;
+
+    const payload = validRecords.map(rec => ({
+      user_id: user.id,
+      hymn_id: rec.hymn_id,
+      key_id: rec.key_id,
+      key_mode: rec.key_mode,
+      highest_note_id: rec.highest_note_id,
+      highest_octave: rec.highest_octave,
+      lowest_note_id: rec.lowest_note_id,
+      lowest_octave: rec.lowest_octave,
+      has_modulation: rec.has_modulation,
+      energy: rec.energy
+    }));
+
+    const { data, error } = await supabase
+      .from('user_hymn')
+      .upsert(payload, { onConflict: 'user_id,hymn_id' });
+
+    if (error) throw error;
+    return true;
+  },
+
+  async getUserHymnListFull() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('user_hymn')
+      .select(`
+        *,
+        hymn:hymns(id, title_es, composer),
+        key_note:notes!user_hymn_key_id_fkey(id, name_es, name_en)
+      `)
+      .eq('user_id', user.id);
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async deleteUserHymn(hymnId) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuario no autenticado');
+
+    const { error } = await supabase
+      .from('user_hymn')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('hymn_id', hymnId);
+
+    if (error) throw error;
+    return true;
   }
 };
+

@@ -18,16 +18,23 @@ export async function renderPlannerView() {
             📅 Planificador de Programas
           </h1>
           <p style="color: var(--text-muted); font-size: 0.9rem;">
-            Diseña tus programas musicales por títulos. Los números de himnario se asignarán automáticamente al exportar.
+            Diseña tus programas musicales con el asistente de sugerencias inteligentes y alertas de recurrencia.
           </p>
         </div>
 
-        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+          <button id="planner-intelligence-btn" style="
+            background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.35); color: #c084fc;
+            padding: 0.65rem 1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.4rem;
+          ">
+            <span>💡</span> Asistente Inteligente
+          </button>
+
           <button id="config-preferred-hymnal-btn" style="
             background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main);
             padding: 0.65rem 1rem; border-radius: var(--radius-md); font-weight: 500; cursor: pointer;
           ">
-            📖 Himnario Preferido: <strong>${preferredHymnalName}</strong>
+            📖 Himnario: <strong>${preferredHymnalName}</strong>
           </button>
 
           <button id="create-program-btn" style="
@@ -42,7 +49,7 @@ export async function renderPlannerView() {
       <div style="display: flex; flex-direction: column; gap: 1.5rem;">
         ${programs.length === 0 ? `
           <div style="text-align: center; color: var(--text-muted); padding: 3rem; background: var(--bg-surface); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
-            No hay programas creados aún. ¡Crea uno para comenzar!
+            No hay programas creados aún. ¡Crea uno o usa el Asistente Inteligente para comenzar!
           </div>
         ` : programs.map(p => renderProgramCard(p, prefs.preferred_hymnal_id)).join('')}
       </div>
@@ -60,6 +67,7 @@ export async function refreshPlannerView() {
 
 function renderProgramCard(program, preferredHymnalId) {
   const formattedDate = new Date(program.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const hymnList = program.program_hymn || [];
 
   return `
     <div style="
@@ -72,18 +80,27 @@ function renderProgramCard(program, preferredHymnalId) {
           <div style="font-size: 0.85rem; color: var(--primary); font-weight: 500;">📅 ${formattedDate} | Contexto: ${program.context ? program.context.name : 'General'}</div>
         </div>
 
-        <button class="export-program-btn" data-id="${program.id}" style="
-          background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--status-success);
-          padding: 0.4rem 0.8rem; border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer; font-weight: 600;
-        ">
-          📲 Exportar / Copiar con Números
-        </button>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button class="export-program-btn" data-id="${program.id}" style="
+            background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--status-success);
+            padding: 0.4rem 0.8rem; border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer; font-weight: 600;
+          ">
+            📲 Exportar / Generar Ficha
+          </button>
+          
+          <button class="delete-program-btn" data-id="${program.id}" data-name="${program.name || 'Programa'}" title="Eliminar programa" style="
+            background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5;
+            padding: 0.4rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer; font-weight: 600;
+          ">
+            🗑️
+          </button>
+        </div>
       </div>
 
       <div>
-        <h4 style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;">Repertorio Seleccionado (${program.program_hymn ? program.program_hymn.length : 0} himnos)</h4>
-        <ol style="padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.4rem;">
-          ${program.program_hymn && program.program_hymn.length > 0 ? program.program_hymn.map(ph => {
+        <h4 style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;">Repertorio Seleccionado (${hymnList.length} himnos)</h4>
+        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+          ${hymnList.length > 0 ? hymnList.map((ph, idx) => {
             const hymn = ph.hymn;
             let numberText = '';
             if (hymn && preferredHymnalId && hymn.hymnal_hymn) {
@@ -92,14 +109,43 @@ function renderProgramCard(program, preferredHymnalId) {
                 numberText = `<span style="color: var(--status-warning); font-weight: 700;">#${mapping.number}</span> — `;
               }
             }
+
+            // user_hymn attributes
+            let musicDetails = '';
+            if (hymn && hymn.user_hymn && hymn.user_hymn.length > 0) {
+              const uh = hymn.user_hymn[0];
+              const keyName = uh.key_note ? uh.key_note.name_es : '';
+              const keyMode = uh.key_mode === 'minor' ? 'm' : '';
+              const keyDisplay = keyName ? `${keyName}${keyMode}` : '';
+              const energyDisplay = uh.energy ? `⚡${uh.energy}/5` : '';
+              
+              if (keyDisplay || energyDisplay) {
+                musicDetails = `<span style="background: rgba(59,130,246,0.15); color: #93c5fd; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.75rem; margin-left: 0.4rem; font-weight: 600;">🎼 ${keyDisplay} ${energyDisplay}</span>`;
+              }
+            }
+
             return `
-              <li style="color: var(--text-main); font-size: 0.95rem;">
-                ${numberText}<strong>${hymn ? hymn.title_es : 'Himno'}</strong>
-                ${hymn && hymn.composer ? `<span style="color: var(--text-muted); font-size: 0.85rem;"> (${hymn.composer})</span>` : ''}
-              </li>
+              <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 0.5rem 0.75rem; border-radius: var(--radius-md);">
+                <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-main); font-size: 0.95rem;">
+                  <span style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600; width: 22px;">${idx + 1}.</span>
+                  ${numberText}<strong>${hymn ? hymn.title_es : 'Himno'}</strong>
+                  ${hymn && hymn.composer ? `<span style="color: var(--text-muted); font-size: 0.85rem;"> (${hymn.composer})</span>` : ''}
+                  ${musicDetails}
+                </div>
+
+                <!-- Reorder buttons -->
+                <div style="display: flex; gap: 0.25rem;">
+                  <button class="reorder-hymn-up-btn" data-prog-id="${program.id}" data-index="${idx}" ${idx === 0 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.2rem 0.4rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">
+                    ▲
+                  </button>
+                  <button class="reorder-hymn-down-btn" data-prog-id="${program.id}" data-index="${idx}" ${idx === hymnList.length - 1 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.2rem 0.4rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">
+                    ▼
+                  </button>
+                </div>
+              </div>
             `;
           }).join('') : `<p style="color: var(--text-muted); font-size: 0.85rem; font-style: italic;">Sin himnos agregados a este programa.</p>`}
-        </ol>
+        </div>
       </div>
     </div>
   `;
@@ -108,6 +154,88 @@ function renderProgramCard(program, preferredHymnalId) {
 export function setupPlannerEvents() {
   const createBtn = document.getElementById('create-program-btn');
   const configPrefBtn = document.getElementById('config-preferred-hymnal-btn');
+  const intelligenceBtn = document.getElementById('planner-intelligence-btn');
+
+  // Asistente Inteligente (Himnos Olvidados y Himnos Nuevos Activos)
+  if (intelligenceBtn) {
+    intelligenceBtn.addEventListener('click', async () => {
+      try {
+        const contexts = await contextsService.getContexts();
+        if (!contexts || contexts.length === 0) {
+          showToast('Debes tener al menos un contexto registrado para usar el asistente inteligente.', 'warning');
+          return;
+        }
+
+        let selectedContextId = contexts[0].id;
+        openIntelligenceModal(contexts, selectedContextId);
+      } catch (err) {
+        showToast(`Error al abrir asistente inteligente: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // Reordenar himno arriba ▲
+  document.querySelectorAll('.reorder-hymn-up-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const progId = e.currentTarget.getAttribute('data-prog-id');
+      const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
+      if (isNaN(idx) || idx <= 0) return;
+
+      const programs = await programsService.getPrograms();
+      const prog = programs.find(p => p.id === progId);
+      if (!prog || !prog.program_hymn) return;
+
+      const hymnIds = prog.program_hymn.map(ph => ph.hymn_id);
+      // Swap idx and idx - 1
+      const temp = hymnIds[idx];
+      hymnIds[idx] = hymnIds[idx - 1];
+      hymnIds[idx - 1] = temp;
+
+      await programsService.updateProgramHymnOrder(progId, hymnIds);
+      showToast('Orden del repertorio actualizado.', 'success');
+      await refreshPlannerView();
+    });
+  });
+
+  // Reordenar himno abajo ▼
+  document.querySelectorAll('.reorder-hymn-down-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const progId = e.currentTarget.getAttribute('data-prog-id');
+      const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
+      
+      const programs = await programsService.getPrograms();
+      const prog = programs.find(p => p.id === progId);
+      if (!prog || !prog.program_hymn || idx >= prog.program_hymn.length - 1) return;
+
+      const hymnIds = prog.program_hymn.map(ph => ph.hymn_id);
+      // Swap idx and idx + 1
+      const temp = hymnIds[idx];
+      hymnIds[idx] = hymnIds[idx + 1];
+      hymnIds[idx + 1] = temp;
+
+      await programsService.updateProgramHymnOrder(progId, hymnIds);
+      showToast('Orden del repertorio actualizado.', 'success');
+      await refreshPlannerView();
+    });
+  });
+
+  // Eliminar programa
+  document.querySelectorAll('.delete-program-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const progId = e.currentTarget.getAttribute('data-id');
+      const progName = e.currentTarget.getAttribute('data-name');
+
+      createModal(`¿Eliminar Programa "${progName}"?`, `
+        <p style="color: var(--text-muted); font-size: 0.9rem;">
+          Esta acción eliminará la planificación musical de este programa de forma permanente.
+        </p>
+      `, async () => {
+        await programsService.deleteProgram(progId);
+        showToast(`Programa "${progName}" eliminado con éxito.`, 'success');
+        await refreshPlannerView();
+      });
+    });
+  });
 
   if (configPrefBtn) {
     configPrefBtn.addEventListener('click', async () => {
@@ -201,25 +329,219 @@ export function setupPlannerEvents() {
       const programs = await programsService.getPrograms();
       const prog = programs.find(p => p.id === progId);
       const prefs = await authService.getUserPreferences();
+      const hymnals = await hymnalsService.getHymnals();
 
       if (!prog) return;
 
-      let textOutput = `🎶 *${prog.name || 'Programa Musical'}*\n📅 Fecha: ${prog.date}\n🏛️ Contexto: ${prog.context ? prog.context.name : ''}\n\n`;
+      createModal('📲 Exportar / Generar Ficha de Programa', `
+        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+          <div>
+            <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Seleccionar Himnario de Referencia</label>
+            <select id="export-hymnal-select" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;">
+              <option value="">Sin números de himnario (solo títulos y tono)</option>
+              ${hymnals.map(h => `
+                <option value="${h.id}" ${prefs.preferred_hymnal_id === h.id ? 'selected' : ''}>${h.name}</option>
+              `).join('')}
+            </select>
+          </div>
 
-      if (prog.program_hymn) {
-        prog.program_hymn.forEach((ph, idx) => {
-          const hymn = ph.hymn;
-          let numStr = '';
-          if (hymn && prefs.preferred_hymnal_id && hymn.hymnal_hymn) {
-            const mapping = hymn.hymnal_hymn.find(hh => hh.hymnal_id === prefs.preferred_hymnal_id);
-            if (mapping) numStr = `#${mapping.number} `;
-          }
-          textOutput += `${idx + 1}. ${numStr}${hymn ? hymn.title_es : 'Himno'}\n`;
-        });
-      }
+          <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+            <label style="font-size: 0.85rem; color: var(--text-muted);">Formato de Salida</label>
 
-      navigator.clipboard.writeText(textOutput);
-      showToast('¡Programa copiado al portapapeles con sus números correspondientes!', 'success');
+            <button id="export-copy-text-btn" type="button" style="
+              background: var(--gradient-primary); border: none; color: white; padding: 0.65rem 1rem;
+              border-radius: var(--radius-md); font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+            ">
+              📋 Copiar Texto para WhatsApp / Mensajería
+            </button>
+
+            <button id="export-download-csv-btn" type="button" style="
+              background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--status-success);
+              padding: 0.65rem 1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+            ">
+              📊 Descargar CSV para Excel (.csv)
+            </button>
+          </div>
+        </div>
+      `, null);
+
+      setTimeout(() => {
+        const copyBtn = document.getElementById('export-copy-text-btn');
+        const csvBtn = document.getElementById('export-download-csv-btn');
+        const selectEl = document.getElementById('export-hymnal-select');
+
+        const getSelectedHymnalId = () => selectEl ? selectEl.value : '';
+
+        if (copyBtn) {
+          copyBtn.addEventListener('click', () => {
+            const targetHymnalId = getSelectedHymnalId();
+            let textOutput = `🎶 *${prog.name || 'Programa Musical'}*\n📅 Fecha: ${prog.date}\n🏛️ Contexto: ${prog.context ? prog.context.name : 'General'}\n\n`;
+
+            if (prog.program_hymn) {
+              prog.program_hymn.forEach((ph, idx) => {
+                const hymn = ph.hymn;
+                let numStr = '';
+                if (hymn && targetHymnalId && hymn.hymnal_hymn) {
+                  const mapping = hymn.hymnal_hymn.find(hh => hh.hymnal_id === targetHymnalId);
+                  if (mapping) numStr = `#${mapping.number} `;
+                }
+
+                let keyStr = '';
+                if (hymn && hymn.user_hymn && hymn.user_hymn.length > 0) {
+                  const uh = hymn.user_hymn[0];
+                  if (uh.key_note) {
+                    keyStr = ` [${uh.key_note.name_es}${uh.key_mode === 'minor' ? 'm' : ''}]`;
+                  }
+                }
+
+                textOutput += `${idx + 1}. ${numStr}${hymn ? hymn.title_es : 'Himno'}${keyStr}\n`;
+              });
+            }
+
+            navigator.clipboard.writeText(textOutput);
+            showToast('¡Programa copiado al portapapeles con éxito!', 'success');
+          });
+        }
+
+        if (csvBtn) {
+          csvBtn.addEventListener('click', () => {
+            const targetHymnalId = getSelectedHymnalId();
+            const targetHymnalObj = hymnals.find(h => h.id === targetHymnalId);
+            const hymnalName = targetHymnalObj ? targetHymnalObj.name : 'N/A';
+
+            const headers = ['Orden', 'Himnario', 'Numero', 'Titulo', 'Tonalidad', 'Modo', 'Energia'];
+            const rows = [headers.join(',')];
+
+            if (prog.program_hymn) {
+              prog.program_hymn.forEach((ph, idx) => {
+                const hymn = ph.hymn;
+                let numStr = '';
+                if (hymn && targetHymnalId && hymn.hymnal_hymn) {
+                  const mapping = hymn.hymnal_hymn.find(hh => hh.hymnal_id === targetHymnalId);
+                  if (mapping) numStr = mapping.number;
+                }
+
+                let keyName = '';
+                let keyMode = '';
+                let energy = '';
+
+                if (hymn && hymn.user_hymn && hymn.user_hymn.length > 0) {
+                  const uh = hymn.user_hymn[0];
+                  keyName = uh.key_note ? uh.key_note.name_es : '';
+                  keyMode = uh.key_mode === 'minor' ? 'Menor' : 'Mayor';
+                  energy = uh.energy || '';
+                }
+
+                const esc = (str) => `"${String(str || '').replace(/"/g, '""')}"`;
+
+                rows.push([
+                  idx + 1,
+                  esc(hymnalName),
+                  esc(numStr),
+                  esc(hymn ? hymn.title_es : ''),
+                  esc(keyName),
+                  esc(keyMode),
+                  esc(energy)
+                ].join(','));
+              });
+            }
+
+            const csvContent = '\uFEFF' + rows.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `programa_${prog.name ? prog.name.replace(/\s+/g, '_') : 'musical'}_${prog.date}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast('Archivo CSV del programa generado con éxito.', 'success');
+          });
+        }
+      }, 100);
     });
   });
+}
+
+// Function to render intelligence modal (Forgotten Hymns & Active New Hymns)
+async function openIntelligenceModal(contexts, initialContextId) {
+  let currentContextId = initialContextId;
+
+  const renderModalContent = async (contextId) => {
+    const forgotten = await programsService.getForgottenHymns(contextId, 10);
+    const activeNew = await programsService.getActiveNewHymns(contextId);
+
+    const forgottenHtml = forgotten.length > 0 ? forgotten.map(h => {
+      const timeStr = h.days_elapsed > 3000 ? '🌟 Nunca cantado' : `📅 Cantado hace ${h.days_elapsed} días (${h.last_used_at})`;
+      return `
+        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 0.6rem 0.8rem; border-radius: var(--radius-md);">
+          <div>
+            <strong style="color: var(--text-main); font-size: 0.9rem;">${h.title_es}</strong>
+            <div style="font-size: 0.8rem; color: #a7f3d0;">${timeStr}</div>
+          </div>
+          <span style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); color: #6ee7b7; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600;">Recomendado</span>
+        </div>
+      `;
+    }).join('') : '<p style="color: var(--text-muted); font-size: 0.85rem;">No hay sugerencias en este momento.</p>';
+
+    const activeNewHtml = activeNew.length > 0 ? activeNew.map(an => {
+      const h = an.hymn;
+      return `
+        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 0.6rem 0.8rem; border-radius: var(--radius-md);">
+          <div>
+            <strong style="color: var(--text-main); font-size: 0.9rem;">${h ? h.title_es : 'Himno'}</strong>
+            <div style="font-size: 0.8rem; color: #c084fc;">🌟 Cantado ${an.usage_count} de ${an.new_hymn_threshold} veces para graduarse</div>
+          </div>
+          <span style="font-size: 0.75rem; background: rgba(168, 85, 247, 0.15); color: #c084fc; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600;">Himno Nuevo</span>
+        </div>
+      `;
+    }).join('') : '<p style="color: var(--text-muted); font-size: 0.85rem;">No hay himnos nuevos activos asignados a este contexto.</p>';
+
+    return `
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <div>
+          <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Contexto Seleccionado</label>
+          <select id="intel-context-select" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;">
+            ${contexts.map(c => `<option value="${c.id}" ${c.id === contextId ? 'selected' : ''}>${c.name}</option>`).join('')}
+          </select>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+          <div>
+            <h4 style="font-size: 0.95rem; color: var(--text-main); font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+              💡 Himnos Olvidados (Sin cantar hace más tiempo)
+            </h4>
+            <div style="display: flex; flex-direction: column; gap: 0.4rem; max-height: 180px; overflow-y: auto;">
+              ${forgottenHtml}
+            </div>
+          </div>
+
+          <div>
+            <h4 style="font-size: 0.95rem; color: var(--text-main); font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+              🌟 Himnos Nuevos Activos en el Contexto
+            </h4>
+            <div style="display: flex; flex-direction: column; gap: 0.4rem; max-height: 150px; overflow-y: auto;">
+              ${activeNewHtml}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  };
+
+  createModal('💡 Asistente Inteligente de Planificación', await renderModalContent(currentContextId), null);
+
+  setTimeout(() => {
+    const sel = document.getElementById('intel-context-select');
+    if (sel) {
+      sel.addEventListener('change', async (e) => {
+        currentContextId = e.target.value;
+        const modalBody = document.querySelector('.modal-body') || document.getElementById('modal-container');
+        if (modalBody) {
+          modalBody.innerHTML = await renderModalContent(currentContextId);
+        }
+      });
+    }
+  }, 100);
 }

@@ -11,7 +11,13 @@ export const programsService = {
           order_index,
           hymn:hymns(
             *,
-            hymnal_hymn(number, hymnal_id)
+            hymnal_hymn(number, hymnal_id, hymnal:hymnals(id, name)),
+            user_hymn(
+              key_mode,
+              energy,
+              has_modulation,
+              key_note:notes!user_hymn_key_id_fkey(id, name_es, name_en)
+            )
           )
         )
       `)
@@ -67,5 +73,132 @@ export const programsService = {
 
     if (error) throw error;
     return data || { total_uses: 0, last_used_at: null };
+  },
+
+  async getForgottenHymns(contextId, limit = 10) {
+    // 1. Fetch all hymns
+    const { data: allHymns, error: hymnErr } = await supabase
+      .from('hymns')
+      .select(`
+        *,
+        hymnal_hymn(number, hymnal_id, hymnal:hymnals(id, name)),
+        user_hymn(key_mode, energy, key_note:notes!user_hymn_key_id_fkey(id, name_es, name_en))
+      `);
+
+    if (hymnErr) throw hymnErr;
+
+    // 2. Fetch usage stats for this context
+    const { data: usageStats, error: statErr } = await supabase
+      .from('v_hymn_usage_stats')
+      .select('*')
+      .eq('context_id', contextId);
+
+    if (statErr) throw statErr;
+
+    const statsMap = new Map((usageStats || []).map(s => [s.hymn_id, s]));
+
+    // 3. Map and sort
+    const mapped = allHymns.map(hymn => {
+      const stat = statsMap.get(hymn.id);
+      const lastUsedAt = stat ? stat.last_used_at : null;
+      const totalUses = stat ? stat.total_uses : 0;
+      
+      let daysElapsed = 99999;
+      if (lastUsedAt) {
+        const diffMs = new Date() - new Date(lastUsedAt);
+        daysElapsed = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      }
+
+      return {
+        ...hymn,
+        total_uses: totalUses,
+        last_used_at: lastUsedAt,
+        days_elapsed: daysElapsed
+      };
+    });
+
+    // Sort by days elapsed descending (never used / longest time ago first)
+    mapped.sort((a, b) => b.days_elapsed - a.days_elapsed);
+
+    return mapped.slice(0, limit);
+  },
+
+  async getActiveNewHymns(contextId) {
+    const { data, error } = await supabase
+      .from('v_active_new_hymns')
+      .select(`
+        *,
+        hymn:hymns(
+          *,
+          hymnal_hymn(number, hymnal_id, hymnal:hymnals(id, name)),
+          user_hymn(key_mode, energy, key_note:notes!user_hymn_key_id_fkey(id, name_es, name_en))
+        )
+      `)
+      .eq('context_id', contextId);
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async checkRecentHymnUsage(contextId, hymnId) {
+    const { data, error } = await supabase
+      .from('v_hymn_usage_stats')
+      .select('*')
+      .eq('context_id', contextId)
+      .eq('hymn_id', hymnId)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data || !data.last_used_at) {
+      return { usedRecently: false, daysAgo: null, lastDate: null };
+    }
+
+    const lastDate = new Date(data.last_used_at);
+    const today = new Date();
+    const diffMs = today - lastDate;
+    const daysAgo = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    return {
+      usedRecently: daysAgo <= 28, // Warning if used in the last 4 weeks
+      daysAgo,
+      lastDate: data.last_used_at
+    };
+  },
+
+  async updateProgramHymnOrder(programId, orderedHymnIds = []) {
+    // Delete existing
+    const { error: delErr } = await supabase
+      .from('program_hymn')
+      .delete()
+      .eq('program_id', programId);
+
+    if (delErr) throw delErr;
+
+    if (orderedHymnIds.length > 0) {
+      const items = orderedHymnIds.map((hymnId, index) => ({
+        program_id: programId,
+        hymn_id: hymnId,
+        order_index: index + 1
+      }));
+
+      const { error: insErr } = await supabase
+        .from('program_hymn')
+        .insert(items);
+
+      if (insErr) throw insErr;
+    }
+
+    return true;
+  },
+
+  async deleteProgram(programId) {
+    const { error } = await supabase
+      .from('programs')
+      .delete()
+      .eq('id', programId);
+
+    if (error) throw error;
+    return true;
   }
 };
+

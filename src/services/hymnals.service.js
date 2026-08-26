@@ -242,6 +242,32 @@ export const hymnalsService = {
     return data;
   },
 
+  async batchAssignHymnsToHymnal(hymnalId, assignments) {
+    // 1. Delete existing links
+    const { error: delErr } = await supabase
+      .from('hymnal_hymn')
+      .delete()
+      .eq('hymnal_id', hymnalId);
+
+    if (delErr) throw delErr;
+
+    // 2. Insert new links
+    if (assignments && assignments.length > 0) {
+      const rows = assignments.map(a => ({
+        hymnal_id: hymnalId,
+        hymn_id: a.hymn_id,
+        number: parseInt(a.number, 10)
+      }));
+
+      const { error: insErr } = await supabase
+        .from('hymnal_hymn')
+        .insert(rows);
+
+      if (insErr) throw insErr;
+    }
+    return true;
+  },
+
   async submitHymnalForReview(hymnalId) {
     const { data, error } = await supabase
       .from('hymnals')
