@@ -9,6 +9,10 @@ export const hymnsService = {
         category_hymn (
           category_id,
           categories (id, name, created_by)
+        ),
+        hymnal_hymn (
+          number,
+          hymnal:hymnals (id, name)
         )
       `)
       .order('title_es', { ascending: true });
@@ -119,5 +123,36 @@ export const hymnsService = {
 
     if (error) throw error;
     return data;
+  },
+
+  async getHymnProgramUsage(hymnId) {
+    const { data, error } = await supabase
+      .from('program_hymn')
+      .select(`
+        order_index,
+        program:programs(
+          id,
+          name,
+          date,
+          context:contexts(name)
+        )
+      `)
+      .eq('hymn_id', hymnId);
+
+    if (error) throw error;
+    return (data || []).map(item => item.program).filter(Boolean);
+  },
+
+  async deleteHymn(hymnId) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuario no autenticado');
+
+    const { error } = await supabase
+      .from('hymns')
+      .delete()
+      .eq('id', hymnId);
+
+    if (error) throw error;
+    return true;
   }
 };

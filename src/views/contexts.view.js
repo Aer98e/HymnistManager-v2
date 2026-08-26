@@ -1,7 +1,7 @@
 import { contextsService } from '../services/contexts.service.js';
 import { hymnsService } from '../services/hymns.service.js';
 import { authService } from '../services/auth.service.js';
-import { createModal } from '../components/modal.js';
+import { createModal, showConfirmModal, showToast } from '../components/modal.js';
 
 export async function renderContextsView() {
   const contexts = await contextsService.getContexts();
@@ -19,7 +19,7 @@ export async function renderContextsView() {
           </p>
         </div>
 
-        <div style="display: flex; gap: 0.75rem;">
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
           <button id="config-threshold-btn" style="
             background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main);
             padding: 0.65rem 1rem; border-radius: var(--radius-md); font-weight: 500; cursor: pointer;
@@ -42,6 +42,14 @@ export async function renderContextsView() {
   `;
 }
 
+export async function refreshContextsView() {
+  const container = document.getElementById('main-content') || document.querySelector('main');
+  if (container) {
+    container.innerHTML = await renderContextsView();
+    setupContextsEvents();
+  }
+}
+
 function renderContextCard(ctx, threshold) {
   return `
     <div style="
@@ -51,7 +59,7 @@ function renderContextCard(ctx, threshold) {
       <div>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
           <h3 style="font-size: 1.2rem; color: var(--text-main); font-weight: 600;">${ctx.name}</h3>
-          <button class="delete-context-btn" data-id="${ctx.id}" style="background: none; border: none; color: var(--status-danger); cursor: pointer;">🗑️</button>
+          <button class="delete-context-btn" data-id="${ctx.id}" data-name="${ctx.name}" style="background: none; border: none; color: var(--status-danger); cursor: pointer; font-size: 1.1rem;">🗑️</button>
         </div>
 
         <div style="
@@ -120,8 +128,10 @@ export async function setupContextsEvents() {
         </form>
       `, async () => {
         const name = document.getElementById('context-name-input').value;
+        if (!name) throw new Error('Ingresa un nombre para el contexto');
         await contextsService.createContext(name);
-        window.location.reload();
+        showToast(`Contexto "${name}" creado exitosamente.`, 'success');
+        await refreshContextsView();
       });
     });
   }
@@ -139,18 +149,28 @@ export async function setupContextsEvents() {
       `, async () => {
         const val = document.getElementById('threshold-val').value;
         await authService.updateUserPreferences(parseInt(val, 10));
-        window.location.reload();
+        showToast('Umbral de himnos nuevos actualizado.', 'success');
+        await refreshContextsView();
       });
     });
   }
 
   document.querySelectorAll('.delete-context-btn').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
+    btn.addEventListener('click', (e) => {
       const id = e.currentTarget.getAttribute('data-id');
-      if (confirm('¿Eliminar este contexto y todos sus programas asociados?')) {
-        await contextsService.deleteContext(id);
-        window.location.reload();
-      }
+      const name = e.currentTarget.getAttribute('data-name');
+
+      showConfirmModal({
+        title: '¿Eliminar Contexto?',
+        message: `¿Deseas eliminar el contexto "${name}" y todos sus programas asociados?`,
+        confirmText: '🗑️ Sí, Eliminar',
+        danger: true,
+        onConfirm: async () => {
+          await contextsService.deleteContext(id);
+          showToast(`Contexto "${name}" eliminado.`, 'success');
+          await refreshContextsView();
+        }
+      });
     });
   });
 
@@ -171,7 +191,8 @@ export async function setupContextsEvents() {
       `, async () => {
         const hymnId = document.getElementById('select-hymn-to-new').value;
         await contextsService.addHymnToNewHymnsCategory(catId, hymnId);
-        window.location.reload();
+        showToast('Himno agregado a la lista de himnos nuevos del contexto.', 'success');
+        await refreshContextsView();
       });
     });
   });

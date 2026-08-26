@@ -3,7 +3,7 @@ import { contextsService } from '../services/contexts.service.js';
 import { hymnsService } from '../services/hymns.service.js';
 import { hymnalsService } from '../services/hymnals.service.js';
 import { authService } from '../services/auth.service.js';
-import { createModal } from '../components/modal.js';
+import { createModal, showToast } from '../components/modal.js';
 
 export async function renderPlannerView() {
   const programs = await programsService.getPrograms();
@@ -48,6 +48,14 @@ export async function renderPlannerView() {
       </div>
     </div>
   `;
+}
+
+export async function refreshPlannerView() {
+  const container = document.getElementById('main-content') || document.querySelector('main');
+  if (container) {
+    container.innerHTML = await renderPlannerView();
+    setupPlannerEvents();
+  }
 }
 
 function renderProgramCard(program, preferredHymnalId) {
@@ -126,7 +134,8 @@ export function setupPlannerEvents() {
         await authService.updateUserPreferences({
           preferred_hymnal_id: selectedId || null
         });
-        window.location.reload();
+        showToast('Himnario preferido actualizado.', 'success');
+        await refreshPlannerView();
       });
     });
   }
@@ -137,7 +146,7 @@ export function setupPlannerEvents() {
       const hymns = await hymnsService.getHymns();
 
       if (contexts.length === 0) {
-        alert('Debes crear al menos un Contexto (ej. Culto Dominical) antes de planificar un programa.');
+        showToast('Debes crear al menos un Contexto (ej. Culto Dominical) antes de planificar un programa.', 'warning');
         window.location.hash = '#/contexts';
         return;
       }
@@ -180,7 +189,8 @@ export function setupPlannerEvents() {
         const selectedHymnIds = Array.from(document.querySelectorAll('.hymn-select-chk:checked')).map(cb => cb.value);
 
         await programsService.createProgram(contextId, date, name, selectedHymnIds);
-        window.location.reload();
+        showToast('Programa musical creado exitosamente.', 'success');
+        await refreshPlannerView();
       });
     });
   }
@@ -209,7 +219,7 @@ export function setupPlannerEvents() {
       }
 
       navigator.clipboard.writeText(textOutput);
-      alert('¡Programa copiado al portapapeles con sus números correspondientes para compartir por WhatsApp!');
+      showToast('¡Programa copiado al portapapeles con sus números correspondientes!', 'success');
     });
   });
 }

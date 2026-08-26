@@ -21,6 +21,18 @@ body {
   flex-direction: column;
 }
 
+/* Fix dropdown menu legibility across all browsers in dark theme */
+select {
+  background-color: var(--bg-surface) !important;
+  color: var(--text-main) !important;
+}
+
+select option {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  padding: 0.5rem;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;

@@ -76,7 +76,7 @@ class AppRouter {
         ${renderNavbar(currentUser)}
         <div style="display: flex; flex: 1;">
           ${renderSidebar(path, currentUser)}
-          <main style="flex: 1; background: var(--bg-dark); min-width: 0;">
+          <main id="main-content" style="flex: 1; background: var(--bg-dark); min-width: 0;">
             ${contentHtml}
           </main>
         </div>

@@ -1,5 +1,6 @@
 import { hymnalsService } from '../services/hymnals.service.js';
-import { createModal } from '../components/modal.js';
+import { createModal, showConfirmModal, showToast } from '../components/modal.js';
+import { openSmartLinkerModal } from './hymnals.view.js';
 
 export async function renderAdminView() {
   const pendingHymnals = await hymnalsService.getPendingHymnals();
@@ -11,7 +12,7 @@ export async function renderAdminView() {
           🛡️ Panel de Administración
         </h1>
         <p style="color: var(--text-muted); font-size: 0.9rem;">
-          Revisión y aprobación de himnarios en estado pendiente de publicación
+          Revisión minuciosa, verificación de coincidencia y aprobación de himnarios
         </p>
       </div>
 
@@ -26,51 +27,151 @@ export async function renderAdminView() {
   `;
 }
 
+export async function refreshAdminView() {
+  const container = document.getElementById('main-content') || document.querySelector('main');
+  if (container) {
+    container.innerHTML = await renderAdminView();
+    setupAdminEvents();
+  }
+}
+
 function renderPendingCard(hymnal) {
+  const hymnCount = hymnal.hymnal_hymn ? hymnal.hymnal_hymn.length : 0;
+
   return `
     <div style="
       background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md);
-      padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;
+      padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;
     ">
-      <div>
-        <h3 style="font-size: 1.2rem; color: var(--text-main); font-weight: 600;">${hymnal.name}</h3>
-        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
-          Solicitado el: ${new Date(hymnal.created_at).toLocaleDateString()} | Himnos numerados: ${hymnal.hymnal_hymn ? hymnal.hymnal_hymn.length : 0}
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h3 style="font-size: 1.2rem; color: var(--text-main); font-weight: 600;">${hymnal.name}</h3>
+          <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+            Solicitado el: ${new Date(hymnal.created_at).toLocaleDateString()} | Idioma: ${hymnal.language ? hymnal.language.name : 'Español'} | Himnos contenidos: ${hymnCount}
+          </div>
         </div>
-      </div>
 
-      <div style="display: flex; gap: 0.75rem;">
-        <button class="reject-hymnal-admin-btn" data-id="${hymnal.id}" data-name="${hymnal.name}" style="
-          background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--status-danger);
-          padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer;
-        ">
-          ❌ Rechazar
-        </button>
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+          <button class="inspect-hymnal-admin-btn" data-id="${hymnal.id}" data-name="${hymnal.name}" style="
+            background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main);
+            padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 500; cursor: pointer;
+          ">
+            👁️ Inspeccionar Detalles & Letras
+          </button>
 
-        <button class="approve-hymnal-admin-btn" data-id="${hymnal.id}" data-name="${hymnal.name}" style="
-          background: var(--status-success); border: none; color: white;
-          padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer;
-        ">
-          ✅ Aprobar Publicación
-        </button>
+          <button class="smart-linker-admin-btn" data-id="${hymnal.id}" style="
+            background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.4); color: var(--primary);
+            padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 500; cursor: pointer;
+          ">
+            🔗 Enlace Inteligente (Deduplicador)
+          </button>
+
+          <button class="reject-hymnal-admin-btn" data-id="${hymnal.id}" data-name="${hymnal.name}" style="
+            background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--status-danger);
+            padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer;
+          ">
+            ❌ Rechazar
+          </button>
+
+          <button class="approve-hymnal-admin-btn" data-id="${hymnal.id}" data-name="${hymnal.name}" data-count="${hymnCount}" style="
+            background: var(--status-success); border: none; color: white;
+            padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer;
+          ">
+            ✅ Aprobar Publicación
+          </button>
+        </div>
       </div>
     </div>
   `;
 }
 
 export function setupAdminEvents() {
-  document.querySelectorAll('.approve-hymnal-admin-btn').forEach(btn => {
+  // Smart Linker for Admin
+  document.querySelectorAll('.smart-linker-admin-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.currentTarget.getAttribute('data-id');
+      openSmartLinkerModal(id);
+    });
+  });
+
+  // Inspect hymnal contents handler with FULL hymn details (Composer, First line, Refrain, Original Title)
+  document.querySelectorAll('.inspect-hymnal-admin-btn').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       const id = e.currentTarget.getAttribute('data-id');
       const name = e.currentTarget.getAttribute('data-name');
-      if (confirm(`¿Aprobar el himnario "${name}" para que sea público globalmente?`)) {
-        await hymnalsService.approveHymnal(id);
-        alert('Himnario aprobado con éxito.');
-        window.location.reload();
+
+      try {
+        const details = await hymnalsService.getHymnalDetails(id);
+        const items = details.hymnal_hymn || [];
+
+        const itemsHtml = items.length === 0 ? `
+          <div style="color: var(--text-muted); text-align: center; padding: 1.5rem;">Este himnario no contiene himnos asociados aún.</div>
+        ` : `
+          <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 60vh; overflow-y: auto; padding-right: 0.5rem;">
+            ${items.sort((a, b) => a.number - b.number).map(item => {
+              const h = item.hymn || {};
+              return `
+                <div style="padding: 0.85rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 0.3rem;">
+                  <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                      <strong style="color: var(--primary); font-size: 1.05rem;">#${item.number}</strong> 
+                      <span style="font-weight: 600; color: white; font-size: 1rem; margin-left: 0.3rem;">${h.title_es || 'Sin título'}</span>
+                      ${h.title_original ? `<span style="font-size: 0.82rem; color: var(--text-muted); font-style: italic; margin-left: 0.4rem;">(${h.title_original})</span>` : ''}
+                    </div>
+                    <span style="font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 12px; font-weight: 600; background: ${h.type === 'public' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(139, 92, 246, 0.15)'}; color: ${h.type === 'public' ? 'var(--status-success)' : 'var(--accent)'};">
+                      ${h.type === 'public' ? 'Público' : 'Privado'}
+                    </span>
+                  </div>
+
+                  <div style="font-size: 0.82rem; color: var(--text-muted);">
+                    👤 Autor / Compositor: <strong style="color: var(--text-main);">${h.composer || 'Desconocido'}</strong>
+                  </div>
+
+                  ${h.first_line ? `
+                    <div style="font-size: 0.82rem; color: var(--accent-cyan); font-style: italic;">
+                      🎶 1ª Estrofa: "${h.first_line}"
+                    </div>
+                  ` : ''}
+
+                  ${h.refrain_first_line ? `
+                    <div style="font-size: 0.82rem; color: var(--status-warning); font-style: italic;">
+                      ✨ Coro: "${h.refrain_first_line}"
+                    </div>
+                  ` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+
+        createModal(`Revisión Detallada: ${name}`, itemsHtml);
+      } catch (err) {
+        showToast(`Error al obtener detalles: ${err.message}`, 'error');
       }
     });
   });
 
+  // Approve hymnal handler
+  document.querySelectorAll('.approve-hymnal-admin-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.currentTarget.getAttribute('data-id');
+      const name = e.currentTarget.getAttribute('data-name');
+      const count = e.currentTarget.getAttribute('data-count');
+
+      showConfirmModal({
+        title: '¿Aprobar Himnario?',
+        message: `¿Estás seguro de que deseas aprobar y publicar "${name}"?\n Sus ${count} himnos asociados pasarán a ser PÚBLICOS GLOBALMENTE y no se podrá deshacer esta acción.`,
+        confirmText: '✅ Aprobar y Publicar',
+        onConfirm: async () => {
+          await hymnalsService.approveHymnal(id);
+          showToast(`Himnario "${name}" publicado globalmente.`, 'success');
+          await refreshAdminView();
+        }
+      });
+    });
+  });
+
+  // Reject hymnal handler
   document.querySelectorAll('.reject-hymnal-admin-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const id = e.currentTarget.getAttribute('data-id');
@@ -85,9 +186,10 @@ export function setupAdminEvents() {
         </form>
       `, async () => {
         const reason = document.getElementById('rejection-reason-input').value;
+        if (!reason) throw new Error('Debes proporcionar una razón de rechazo');
         await hymnalsService.rejectHymnal(id, reason);
-        alert('Himnario rechazado con retroalimentación.');
-        window.location.reload();
+        showToast('Himnario rechazado con retroalimentación.', 'info');
+        await refreshAdminView();
       });
     });
   });
