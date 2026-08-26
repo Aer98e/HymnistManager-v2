@@ -28,8 +28,12 @@ Los himnarios funcionan como **mapeadores de números a himnos únicos globales*
 - `language_id`: FK a `languages.id`
 - `date_created`: TIMESTAMPTZ
 
-**Regla de publicación:**  
+**Regla de publicación y mapeo:**  
 Cuando un himnario es enviado a `pending`, el administrador revisa que los números enlacen a los himnos globales existentes (o crea los faltantes). Al pasar a `public`, el himnario queda disponible para todos los usuarios.
+
+**Asistente de Enlace Inteligente (Smart Linker):**
+Permite importar himnarios en formato CSV de forma independiente y aislada. Posteriormente, mediante un algoritmo de coincidencia difusa (Fuzzy Matching por Título, Compositor y 1ª Línea), sugiere coincidencias del catálogo público con porcentaje de confianza (🟢 90% Coincidencia Alta) para vincularlos con 1 solo clic manteniendo la numeración intacta.
+
 
 ### **Languages (Idiomas)**
 - `id`: UUID (PK)

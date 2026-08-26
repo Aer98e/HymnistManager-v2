@@ -182,66 +182,116 @@ ALTER TABLE public.hymnal_hymn ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.program_hymn ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.category_hymn ENABLE ROW LEVEL SECURITY;
 
--- Hymns Policies
+-- 1. HYMNS POLICIES
+DROP POLICY IF EXISTS "Public hymns viewable" ON public.hymns;
 DROP POLICY IF EXISTS "Public hymns are viewable by all users" ON public.hymns;
-CREATE POLICY "Public hymns are viewable by all users" ON public.hymns FOR SELECT USING (type = 'public' OR created_by = auth.uid());
+CREATE POLICY "Public hymns viewable" ON public.hymns 
+  FOR SELECT USING (type = 'public' OR created_by = auth.uid() OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 DROP POLICY IF EXISTS "Users can create hymns" ON public.hymns;
-CREATE POLICY "Users can create hymns" ON public.hymns FOR INSERT WITH CHECK (auth.uid() = created_by);
+CREATE POLICY "Users can create hymns" ON public.hymns 
+  FOR INSERT WITH CHECK (auth.uid() = created_by OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 DROP POLICY IF EXISTS "Users can update own hymns" ON public.hymns;
-CREATE POLICY "Users can update own hymns" ON public.hymns FOR UPDATE USING (created_by = auth.uid());
+CREATE POLICY "Users can update own hymns" ON public.hymns 
+  FOR UPDATE USING (created_by = auth.uid() OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
--- Hymnals Policies
+DROP POLICY IF EXISTS "Users can delete own hymns" ON public.hymns;
+CREATE POLICY "Users can delete own hymns" ON public.hymns 
+  FOR DELETE USING (created_by = auth.uid() OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+
+
+-- 2. HYMNALS POLICIES
+DROP POLICY IF EXISTS "Public hymnals viewable" ON public.hymnals;
 DROP POLICY IF EXISTS "Public hymnals are viewable by all" ON public.hymnals;
-CREATE POLICY "Public hymnals are viewable by all" ON public.hymnals FOR SELECT USING (type = 'public' OR created_by = auth.uid());
+CREATE POLICY "Public hymnals viewable" ON public.hymnals 
+  FOR SELECT USING (type = 'public' OR created_by = auth.uid() OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 DROP POLICY IF EXISTS "Users can create own hymnals" ON public.hymnals;
-CREATE POLICY "Users can create own hymnals" ON public.hymnals FOR INSERT WITH CHECK (auth.uid() = created_by);
+CREATE POLICY "Users can create own hymnals" ON public.hymnals 
+  FOR INSERT WITH CHECK (auth.uid() = created_by OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 DROP POLICY IF EXISTS "Users can update own hymnals" ON public.hymnals;
-CREATE POLICY "Users can update own hymnals" ON public.hymnals FOR UPDATE USING (created_by = auth.uid());
+CREATE POLICY "Users can update own hymnals" ON public.hymnals 
+  FOR UPDATE USING (created_by = auth.uid() OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
--- Categories Policies
+DROP POLICY IF EXISTS "Users can delete own hymnals" ON public.hymnals;
+CREATE POLICY "Users can delete own hymnals" ON public.hymnals 
+  FOR DELETE USING (created_by = auth.uid() OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+
+
+-- 3. HYMNAL_HYMN (JUNCTION) POLICIES
+DROP POLICY IF EXISTS "Hymnal hymn viewable if hymnal is accessible" ON public.hymnal_hymn;
+DROP POLICY IF EXISTS "Hymnal hymn manageable by owner or admin" ON public.hymnal_hymn;
+CREATE POLICY "Hymnal hymn manageable by owner or admin" ON public.hymnal_hymn 
+  FOR ALL USING (
+    hymnal_id IN (SELECT id FROM public.hymnals WHERE created_by = auth.uid() OR type = 'public' OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  )
+  WITH CHECK (
+    hymnal_id IN (SELECT id FROM public.hymnals WHERE created_by = auth.uid() OR type = 'public' OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  );
+
+
+-- 4. CATEGORIES POLICIES
 DROP POLICY IF EXISTS "Global and user categories viewable" ON public.categories;
-CREATE POLICY "Global and user categories viewable" ON public.categories FOR SELECT USING (created_by IS NULL OR created_by = auth.uid());
+CREATE POLICY "Global and user categories viewable" ON public.categories 
+  FOR SELECT USING (created_by IS NULL OR created_by = auth.uid() OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 DROP POLICY IF EXISTS "Users can insert own categories" ON public.categories;
-CREATE POLICY "Users can insert own categories" ON public.categories FOR INSERT WITH CHECK (created_by = auth.uid());
+CREATE POLICY "Users can insert own categories" ON public.categories 
+  FOR INSERT WITH CHECK (created_by = auth.uid() OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
--- User Preferences Policies
+DROP POLICY IF EXISTS "Users can update delete own categories" ON public.categories;
+CREATE POLICY "Users can update delete own categories" ON public.categories 
+  FOR ALL USING (created_by = auth.uid() OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+
+
+-- 5. USER PREFERENCES POLICIES
 DROP POLICY IF EXISTS "User manages own preferences" ON public.user_preferences;
-CREATE POLICY "User manages own preferences" ON public.user_preferences FOR ALL USING (user_id = auth.uid());
+CREATE POLICY "User manages own preferences" ON public.user_preferences 
+  FOR ALL USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
--- Contexts Policies
+
+-- 6. CONTEXTS POLICIES
 DROP POLICY IF EXISTS "User manages own contexts" ON public.contexts;
-CREATE POLICY "User manages own contexts" ON public.contexts FOR ALL USING (user_id = auth.uid());
+CREATE POLICY "User manages own contexts" ON public.contexts 
+  FOR ALL USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
--- Programs Policies
+
+-- 7. PROGRAMS POLICIES
 DROP POLICY IF EXISTS "User manages own programs" ON public.programs;
-CREATE POLICY "User manages own programs" ON public.programs FOR ALL USING (
-  context_id IN (SELECT id FROM public.contexts WHERE user_id = auth.uid())
-);
+CREATE POLICY "User manages own programs" ON public.programs 
+  FOR ALL USING (context_id IN (SELECT id FROM public.contexts WHERE user_id = auth.uid()))
+  WITH CHECK (context_id IN (SELECT id FROM public.contexts WHERE user_id = auth.uid()));
 
--- User Hymn Policies
+
+-- 8. USER HYMN POLICIES
 DROP POLICY IF EXISTS "User manages own hymn attributes" ON public.user_hymn;
-CREATE POLICY "User manages own hymn attributes" ON public.user_hymn FOR ALL USING (user_id = auth.uid());
+CREATE POLICY "User manages own hymn attributes" ON public.user_hymn 
+  FOR ALL USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
--- Junction tables policies
-DROP POLICY IF EXISTS "Hymnal hymn viewable if hymnal is accessible" ON public.hymnal_hymn;
-CREATE POLICY "Hymnal hymn viewable if hymnal is accessible" ON public.hymnal_hymn FOR ALL USING (
-  hymnal_id IN (SELECT id FROM public.hymnals WHERE type = 'public' OR created_by = auth.uid())
-);
 
+-- 9. PROGRAM HYMN POLICIES
 DROP POLICY IF EXISTS "Program hymn manageable by context owner" ON public.program_hymn;
-CREATE POLICY "Program hymn manageable by context owner" ON public.program_hymn FOR ALL USING (
-  program_id IN (SELECT p.id FROM public.programs p JOIN public.contexts c ON c.id = p.context_id WHERE c.user_id = auth.uid())
-);
+CREATE POLICY "Program hymn manageable by context owner" ON public.program_hymn 
+  FOR ALL USING (
+    program_id IN (SELECT p.id FROM public.programs p JOIN public.contexts c ON c.id = p.context_id WHERE c.user_id = auth.uid())
+  )
+  WITH CHECK (
+    program_id IN (SELECT p.id FROM public.programs p JOIN public.contexts c ON c.id = p.context_id WHERE c.user_id = auth.uid())
+  );
 
+
+-- 10. CATEGORY HYMN POLICIES
 DROP POLICY IF EXISTS "Category hymn manageable by category owner" ON public.category_hymn;
-CREATE POLICY "Category hymn manageable by category owner" ON public.category_hymn FOR ALL USING (
-  category_id IN (SELECT id FROM public.categories WHERE created_by IS NULL OR created_by = auth.uid())
-);
+CREATE POLICY "Category hymn manageable by category owner" ON public.category_hymn 
+  FOR ALL USING (
+    category_id IN (SELECT id FROM public.categories WHERE created_by = auth.uid() OR created_by IS NULL OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  )
+  WITH CHECK (
+    category_id IN (SELECT id FROM public.categories WHERE created_by = auth.uid() OR (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin')
+  );
+
 
 -- Trigger for auto-creating user_preferences on Auth user signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()

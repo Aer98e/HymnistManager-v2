@@ -42,11 +42,14 @@ Arquitectura: **Vite + Vanilla JS + Supabase (PostgreSQL / RLS / Views) + GitHub
 
 ---
 
-## 📘 FASE 5 — Himnarios y Flujo de Publicación
-- Crear y editar himnarios personales.
+## 📘 FASE 5 — Himnarios, Carga CSV y Asistente de Enlace (COMPLETADO)
+- Crear y editar himnarios personales con menú táctil flotante (`⋮`).
+- Importación masiva desde archivos CSV con soporte RFC 4180, detección inteligente de encabezados e inserción en lote.
+- **Asistente de Enlace Inteligente (Smart Linker):** Algoritmo de similitud difusa (Fuzzy Matching) por Título, Compositor y 1ª Línea con mapeo 1-clic al Catálogo Público.
 - Mapeo de números a himnos globales (`hymnal_hymn`).
 - Enviar himnario a revisión (`pending`).
 - Panel de Administración para Aprobación (`public`) o Rechazo (`rejected` + `rejection_reason`).
+
 
 ---
 
