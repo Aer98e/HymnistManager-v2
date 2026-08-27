@@ -243,23 +243,23 @@ export function setupHymnsEvents() {
         <form id="create-hymn-form" style="display: flex; flex-direction: column; gap: 1rem;">
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Título en Español *</label>
-            <input type="text" id="new-title-es" required style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+            <input type="text" id="new-title-es" required style="width: 100%;" />
           </div>
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Primera Línea (1ª Estrofa)</label>
-            <input type="text" id="new-first-line" placeholder="ej. Sublime gracia del Señor que a un pecador salvó" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+            <input type="text" id="new-first-line" placeholder="ej. Sublime gracia del Señor que a un pecador salvó" style="width: 100%;" />
           </div>
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Primera Línea del Coro / Estribillo</label>
-            <input type="text" id="new-refrain-line" placeholder="ej. En la cruz, en la cruz, do primero vi la luz" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+            <input type="text" id="new-refrain-line" placeholder="ej. En la cruz, en la cruz, do primero vi la luz" style="width: 100%;" />
           </div>
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Título Original</label>
-            <input type="text" id="new-title-orig" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+            <input type="text" id="new-title-orig" style="width: 100%;" />
           </div>
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Compositor</label>
-            <input type="text" id="new-composer" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+            <input type="text" id="new-composer" style="width: 100%;" />
           </div>
         </form>
       `, async () => {
@@ -304,7 +304,7 @@ export function setupHymnsEvents() {
               <button type="button" id="wiz-select-all" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.3rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.8rem; cursor: pointer;">Seleccionar Todos</button>
               <button type="button" id="wiz-deselect-all" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.3rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.8rem; cursor: pointer;">Desmarcar Todos</button>
             </div>
-            <div style="max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.75rem; display: flex; flex-direction: column;">
+            <div style="max-height: 200px; overflow-y: auto; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.75rem; display: flex; flex-direction: column;">
               ${hymnalCheckboxes}
             </div>
           </div>
@@ -359,16 +359,20 @@ export function setupHymnsEvents() {
                 const hymnTitle = item.hymn ? item.hymn.title_es : 'Himno';
                 const keyName = item.key_note ? item.key_note.name_es : 'Sin nota';
                 const keyMode = item.key_mode === 'minor' ? 'm' : 'Mayor';
-                const energy = item.energy ? `⚡${item.energy}/5` : '';
+                const energy = item.energy ? `Energía: ${item.energy}/5` : '';
 
                 return `
-                  <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 0.6rem 0.8rem; border-radius: var(--radius-md);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-dark); border: 1px solid var(--border-color); padding: 0.65rem 0.85rem; border-radius: var(--radius-md);">
                     <div>
                       <strong style="color: var(--text-main); font-size: 0.9rem;">${hymnTitle}</strong>
-                      <div style="font-size: 0.8rem; color: #93c5fd;">🎼 Tono: ${keyName} ${keyMode} | ${energy}</div>
+                      <div style="font-size: 0.8rem; color: var(--primary); display: flex; align-items: center; gap: 0.35rem; margin-top: 0.2rem;">
+                        ${icons.music(13)}
+                        <span>Tono: ${keyName} ${keyMode} | ${energy}</span>
+                      </div>
                     </div>
-                    <button class="delete-user-hymn-entry-btn" data-hymn-id="${item.hymn_id}" data-title="${hymnTitle}" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; padding: 0.3rem 0.6rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.8rem; font-weight: 600;">
-                      🗑️ Eliminar
+                    <button class="btn btn-danger btn-sm delete-user-hymn-entry-btn" data-hymn-id="${item.hymn_id}" data-title="${hymnTitle}">
+                      ${icons.trash(14)}
+                      <span>Eliminar</span>
                     </button>
                   </div>
                 `;
@@ -377,13 +381,13 @@ export function setupHymnsEvents() {
           `;
         };
 
-        createModal('⚙️ Gestionar Mis Tonalidades Guardadas', `
+        createModal('Gestionar Mis Tonalidades Guardadas', `
           <div style="display: flex; flex-direction: column; gap: 1rem;">
             <p style="color: var(--text-muted); font-size: 0.85rem;">
               Lista de todas tus tonalidades y configuraciones musicales personalizadas. Eliminar un registro simplemente restaurará el himno a su estado inicial.
             </p>
 
-            <input type="text" id="manage-filter-input" placeholder="🔍 Filtrar por título de himno..." style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+            <input type="text" id="manage-filter-input" placeholder="Filtrar por título de himno..." style="width: 100%;" />
 
             <div id="manage-hymns-list-container">
               ${renderList('')}
@@ -460,7 +464,7 @@ export function setupHymnsEvents() {
               <button type="button" id="select-all-hymnals-btn" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.3rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.8rem; cursor: pointer;">Seleccionar Todos</button>
               <button type="button" id="deselect-all-hymnals-btn" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.3rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.8rem; cursor: pointer;">Desmarcar Todos</button>
             </div>
-            <div style="max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.75rem; display: flex; flex-direction: column;">
+            <div style="max-height: 200px; overflow-y: auto; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.75rem; display: flex; flex-direction: column;">
               ${hymnalCheckboxes || '<span style="color: var(--text-muted);">No hay himnarios registrados. Se incluirán todos los himnos globales.</span>'}
             </div>
           </div>
@@ -518,7 +522,7 @@ export function setupHymnsEvents() {
           </p>
 
           <input type="file" id="user-hymn-csv-input" accept=".csv" style="
-            padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px dashed var(--border-color);
+            padding: 0.75rem; background: var(--bg-dark); border: 1px dashed var(--border-color);
             border-radius: var(--radius-md); color: var(--text-main); cursor: pointer;
           " />
 
@@ -609,14 +613,14 @@ function attachCardEvents(refreshCallback) {
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
               <div>
                 <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Tonalidad Usada</label>
-                <select id="attr-key" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;">
+                <select id="attr-key" style="width: 100%;">
                   <option value="">Seleccionar nota</option>
                   ${notesOptionsHtml}
                 </select>
               </div>
               <div>
                 <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Modo de Tonalidad</label>
-                <select id="attr-key-mode" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;">
+                <select id="attr-key-mode" style="width: 100%;">
                   <option value="major" ${existing.key_mode === 'major' ? 'selected' : ''}>Mayor</option>
                   <option value="minor" ${existing.key_mode === 'minor' ? 'selected' : ''}>Menor</option>
                 </select>
@@ -626,11 +630,11 @@ function attachCardEvents(refreshCallback) {
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
               <div>
                 <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Energía (1 - 5)</label>
-                <input type="number" id="attr-energy" min="1" max="5" value="${existing.energy || 3}" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+                <input type="number" id="attr-energy" min="1" max="5" value="${existing.energy || 3}" style="width: 100%;" />
               </div>
               <div>
                 <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">¿Tiene Modulación?</label>
-                <select id="attr-modulation" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;">
+                <select id="attr-modulation" style="width: 100%;">
                   <option value="false" ${!existing.has_modulation ? 'selected' : ''}>No</option>
                   <option value="true" ${existing.has_modulation ? 'selected' : ''}>Sí</option>
                 </select>
@@ -718,8 +722,8 @@ function startWizardSequence(hymnsList, notes, existingUserHymns, refreshCb) {
 
     createModal(`🪄 Configurando Himno ${currentIndex + 1} de ${hymnsList.length}`, `
       <div style="display: flex; flex-direction: column; gap: 1rem;">
-        <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: var(--radius-md); padding: 0.75rem;">
-          <h3 style="font-size: 1.1rem; color: var(--text-main); font-weight: 600; margin-bottom: 0.2rem;">
+        <div style="background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.75rem;">
+          <h3 style="font-size: 1.05rem; color: var(--text-main); font-weight: 600; margin-bottom: 0.2rem;">
             ${hymnalNumber}${hymn.title_es}
           </h3>
           ${hymn.composer ? `<div style="font-size: 0.85rem; color: var(--text-muted);">Compositor: ${hymn.composer}</div>` : ''}
@@ -730,14 +734,14 @@ function startWizardSequence(hymnsList, notes, existingUserHymns, refreshCb) {
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
             <div>
               <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.2rem;">Tonalidad Usada</label>
-              <select id="wiz-key" style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;">
+              <select id="wiz-key" style="width: 100%;">
                 <option value="">Sin asignar</option>
                 ${notesOptions}
               </select>
             </div>
             <div>
               <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.2rem;">Modo</label>
-              <select id="wiz-mode" style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;">
+              <select id="wiz-mode" style="width: 100%;">
                 <option value="major" ${existing.key_mode === 'major' ? 'selected' : ''}>Mayor</option>
                 <option value="minor" ${existing.key_mode === 'minor' ? 'selected' : ''}>Menor</option>
               </select>
@@ -747,11 +751,11 @@ function startWizardSequence(hymnsList, notes, existingUserHymns, refreshCb) {
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
             <div>
               <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.2rem;">Energía (1-5)</label>
-              <input type="number" id="wiz-energy" min="1" max="5" value="${existing.energy || 3}" style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+              <input type="number" id="wiz-energy" min="1" max="5" value="${existing.energy || 3}" style="width: 100%;" />
             </div>
             <div>
               <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.2rem;">Modulación</label>
-              <select id="wiz-mod" style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;">
+              <select id="wiz-mod" style="width: 100%;">
                 <option value="false" ${!existing.has_modulation ? 'selected' : ''}>No</option>
                 <option value="true" ${existing.has_modulation ? 'selected' : ''}>Sí</option>
               </select>
@@ -762,21 +766,21 @@ function startWizardSequence(hymnsList, notes, existingUserHymns, refreshCb) {
             <div>
               <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.2rem;">Nota Más Alta / Octava</label>
               <div style="display: flex; gap: 0.3rem;">
-                <select id="wiz-high-note" style="flex: 1; padding: 0.5rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;">
+                <select id="wiz-high-note" style="flex: 1;">
                   <option value="">Nota</option>
                   ${highestOptions}
                 </select>
-                <input type="number" id="wiz-high-oct" min="1" max="8" placeholder="Oct" value="${existing.highest_octave || ''}" style="width: 55px; padding: 0.5rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+                <input type="number" id="wiz-high-oct" min="1" max="8" placeholder="Oct" value="${existing.highest_octave || ''}" style="width: 65px;" />
               </div>
             </div>
             <div>
               <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.2rem;">Nota Más Baja / Octava</label>
               <div style="display: flex; gap: 0.3rem;">
-                <select id="wiz-low-note" style="flex: 1; padding: 0.5rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;">
+                <select id="wiz-low-note" style="flex: 1;">
                   <option value="">Nota</option>
                   ${lowestOptions}
                 </select>
-                <input type="number" id="wiz-low-oct" min="1" max="8" placeholder="Oct" value="${existing.lowest_octave || ''}" style="width: 55px; padding: 0.5rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+                <input type="number" id="wiz-low-oct" min="1" max="8" placeholder="Oct" value="${existing.lowest_octave || ''}" style="width: 65px;" />
               </div>
             </div>
           </div>

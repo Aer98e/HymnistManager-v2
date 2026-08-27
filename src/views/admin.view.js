@@ -172,7 +172,7 @@ export function setupAdminEvents() {
         <form style="display: flex; flex-direction: column; gap: 1rem;">
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Razón de Rechazo (Feedback al usuario) *</label>
-            <textarea id="rejection-reason-input" required rows="3" placeholder="ej. Corregir los números del himno 14 y 15 que están duplicados." style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;"></textarea>
+            <textarea id="rejection-reason-input" required rows="3" placeholder="ej. Corregir los números del himno 14 y 15 que están duplicados." style="width: 100%;"></textarea>
           </div>
         </form>
       `, async () => {

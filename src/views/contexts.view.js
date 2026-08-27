@@ -121,7 +121,7 @@ export async function setupContextsEvents() {
         <form style="display: flex; flex-direction: column; gap: 1rem;">
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Nombre del Contexto *</label>
-            <input type="text" id="context-name-input" required placeholder="ej. Culto Dominical" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+            <input type="text" id="context-name-input" required placeholder="ej. Culto Dominical" style="width: 100%;" />
           </div>
         </form>
       `, async () => {
@@ -141,7 +141,7 @@ export async function setupContextsEvents() {
         <form style="display: flex; flex-direction: column; gap: 1rem;">
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Umbral de Usos (Veces cantado para dejar de ser nuevo)</label>
-            <input type="number" id="threshold-val" min="1" max="20" value="${currentPrefs.new_hymn_threshold}" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+            <input type="number" id="threshold-val" min="1" max="20" value="${currentPrefs.new_hymn_threshold}" style="width: 100%;" />
           </div>
         </form>
       `, async () => {
@@ -181,7 +181,7 @@ export async function setupContextsEvents() {
         <form style="display: flex; flex-direction: column; gap: 1rem;">
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Seleccionar Himno</label>
-            <select id="select-hymn-to-new" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;">
+            <select id="select-hymn-to-new" style="width: 100%;">
               ${allHymns.map(h => `<option value="${h.id}">${h.title_es}</option>`).join('')}
             </select>
           </div>

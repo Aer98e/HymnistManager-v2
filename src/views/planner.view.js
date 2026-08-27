@@ -116,7 +116,7 @@ function renderProgramCard(program, preferredHymnalId) {
             }
 
             return `
-              <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 0.5rem 0.75rem; border-radius: var(--radius-md);">
+              <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-dark); border: 1px solid var(--border-color); padding: 0.5rem 0.75rem; border-radius: var(--radius-md);">
                 <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-main); font-size: 0.95rem;">
                   <span style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600; width: 22px;">${idx + 1}.</span>
                   ${numberText}<strong>${hymn ? hymn.title_es : 'Himno'}</strong>
@@ -237,7 +237,7 @@ export function setupPlannerEvents() {
         <form style="display: flex; flex-direction: column; gap: 1rem;">
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Himnario Principal</label>
-            <select id="select-pref-hymnal" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;">
+            <select id="select-pref-hymnal" style="width: 100%;">
               <option value="">Ninguno seleccionado</option>
               ${hymnals.map(h => `
                 <option value="${h.id}" ${currentPrefs.preferred_hymnal_id === h.id ? 'selected' : ''}>${h.name} (${h.type === 'public' ? 'Oficial/Público' : 'Personal'})</option>
@@ -274,24 +274,24 @@ export function setupPlannerEvents() {
         <form id="program-form" style="display: flex; flex-direction: column; gap: 1rem;">
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Nombre del Programa</label>
-            <input type="text" id="prog-name" placeholder="ej. Culto Dominical de Alabanza" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+            <input type="text" id="prog-name" placeholder="ej. Culto Dominical de Alabanza" style="width: 100%;" />
           </div>
 
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Fecha *</label>
-            <input type="date" id="prog-date" required value="${new Date().toISOString().split('T')[0]}" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+            <input type="date" id="prog-date" required value="${new Date().toISOString().split('T')[0]}" style="width: 100%;" />
           </div>
 
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Contexto *</label>
-            <select id="prog-context" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;">
+            <select id="prog-context" style="width: 100%;">
               ${contexts.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
             </select>
           </div>
 
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Seleccionar Himnos por Nombre</label>
-            <div style="max-height: 180px; overflow-y: auto; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.5rem;">
+            <div style="max-height: 180px; overflow-y: auto; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.5rem;">
               ${hymns.map(h => `
                 <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0; cursor: pointer; color: var(--text-main); font-size: 0.9rem;">
                   <input type="checkbox" class="hymn-select-chk" value="${h.id}" />
@@ -328,7 +328,7 @@ export function setupPlannerEvents() {
         <div style="display: flex; flex-direction: column; gap: 1.25rem;">
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Seleccionar Himnario de Referencia</label>
-            <select id="export-hymnal-select" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;">
+            <select id="export-hymnal-select" style="width: 100%;">
               <option value="">Sin números de himnario (solo títulos y tono)</option>
               ${hymnals.map(h => `
                 <option value="${h.id}" ${prefs.preferred_hymnal_id === h.id ? 'selected' : ''}>${h.name}</option>
@@ -464,14 +464,14 @@ async function openIntelligenceModal(contexts, initialContextId) {
     const activeNew = await programsService.getActiveNewHymns(contextId);
 
     const forgottenHtml = forgotten.length > 0 ? forgotten.map(h => {
-      const timeStr = h.days_elapsed > 3000 ? '🌟 Nunca cantado' : `📅 Cantado hace ${h.days_elapsed} días (${h.last_used_at})`;
+      const timeStr = h.days_elapsed > 3000 ? 'Nunca cantado' : `Cantado hace ${h.days_elapsed} días (${h.last_used_at})`;
       return `
-        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 0.6rem 0.8rem; border-radius: var(--radius-md);">
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-dark); border: 1px solid var(--border-color); padding: 0.6rem 0.8rem; border-radius: var(--radius-md);">
           <div>
             <strong style="color: var(--text-main); font-size: 0.9rem;">${h.title_es}</strong>
-            <div style="font-size: 0.8rem; color: #a7f3d0;">${timeStr}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">${timeStr}</div>
           </div>
-          <span style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); color: #6ee7b7; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600;">Recomendado</span>
+          <span class="badge badge-success">Recomendado</span>
         </div>
       `;
     }).join('') : '<p style="color: var(--text-muted); font-size: 0.85rem;">No hay sugerencias en este momento.</p>';
@@ -479,12 +479,12 @@ async function openIntelligenceModal(contexts, initialContextId) {
     const activeNewHtml = activeNew.length > 0 ? activeNew.map(an => {
       const h = an.hymn;
       return `
-        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 0.6rem 0.8rem; border-radius: var(--radius-md);">
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-dark); border: 1px solid var(--border-color); padding: 0.6rem 0.8rem; border-radius: var(--radius-md);">
           <div>
             <strong style="color: var(--text-main); font-size: 0.9rem;">${h ? h.title_es : 'Himno'}</strong>
-            <div style="font-size: 0.8rem; color: #c084fc;">🌟 Cantado ${an.usage_count} de ${an.new_hymn_threshold} veces para graduarse</div>
+            <div style="font-size: 0.8rem; color: var(--primary);">Cantado ${an.usage_count} de ${an.new_hymn_threshold} veces para graduarse</div>
           </div>
-          <span style="font-size: 0.75rem; background: rgba(168, 85, 247, 0.15); color: #c084fc; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 600;">Himno Nuevo</span>
+          <span class="badge badge-gold">Himno Nuevo</span>
         </div>
       `;
     }).join('') : '<p style="color: var(--text-muted); font-size: 0.85rem;">No hay himnos nuevos activos asignados a este contexto.</p>';
@@ -493,7 +493,7 @@ async function openIntelligenceModal(contexts, initialContextId) {
       <div style="display: flex; flex-direction: column; gap: 1rem;">
         <div>
           <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Contexto Seleccionado</label>
-          <select id="intel-context-select" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;">
+          <select id="intel-context-select" style="width: 100%;">
             ${contexts.map(c => `<option value="${c.id}" ${c.id === contextId ? 'selected' : ''}>${c.name}</option>`).join('')}
           </select>
         </div>

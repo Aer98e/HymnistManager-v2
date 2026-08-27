@@ -70,8 +70,7 @@ export async function openCustomHymnalBuilderModal(hymnalId = null, onSaveSucces
         <div style="flex: 1; min-width: 260px;">
           <label style="display: block; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 600;">Nombre del Himnario *</label>
           <input type="text" id="builder-hymnal-name" value="${hymnalName}" placeholder="ej. Mi Himnario Favorito 2026" style="
-            width: 100%; padding: 0.55rem 0.8rem; background: var(--bg-surface); border: 1px solid var(--border-color);
-            border-radius: var(--radius-sm); color: white; font-weight: 600; font-size: 0.95rem; outline: none;
+            width: 100%; padding: 0.55rem 0.8rem; font-weight: 600; font-size: 0.95rem;
           " />
         </div>
 
@@ -144,14 +143,12 @@ export async function openCustomHymnalBuilderModal(hymnalId = null, onSaveSucces
             display: flex; flex-direction: column; gap: 0.5rem;
           ">
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              <input type="text" id="builder-search-input" placeholder="🔍 Buscar por título, 1ª línea o compositor..." style="
-                flex: 1; min-width: 180px; padding: 0.55rem 0.8rem; background: var(--bg-surface); border: 1px solid var(--border-color);
-                border-radius: var(--radius-sm); color: white; font-size: 0.88rem; outline: none;
+              <input type="text" id="builder-search-input" placeholder="Buscar por título, 1ª línea o compositor..." style="
+                flex: 1; min-width: 180px; padding: 0.55rem 0.8rem; font-size: 0.88rem;
               " />
 
               <select id="builder-source-hymnal-select" style="
-                padding: 0.55rem 0.8rem; background: var(--bg-surface); border: 1px solid var(--border-color);
-                border-radius: var(--radius-sm); color: var(--text-main); font-size: 0.82rem; outline: none; cursor: pointer; max-width: 180px;
+                padding: 0.55rem 0.8rem; font-size: 0.82rem; max-width: 180px;
               ">
                 <option value="">📚 Todos los Himnos</option>
                 ${allHymnals.map(h => `<option value="${h.id}">📖 ${h.name}</option>`).join('')}
@@ -215,22 +212,21 @@ export async function openCustomHymnalBuilderModal(hymnalId = null, onSaveSucces
         <div class="builder-slot-item ${isActive ? 'active-slot' : ''}" data-index="${index}" style="
           padding: 0.55rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer;
           transition: var(--transition-fast); display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;
-          background: ${isActive ? 'rgba(99, 102, 241, 0.18)' : (isAssigned ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.2)')};
-          border: 1px solid ${isActive ? 'var(--primary)' : (isAssigned ? 'rgba(255, 255, 255, 0.1)' : 'dashed var(--border-color)')};
-          box-shadow: ${isActive ? '0 0 10px rgba(99, 102, 241, 0.3)' : 'none'};
+          background: ${isActive ? 'var(--bg-dark)' : (isAssigned ? '#FFFFFF' : 'var(--bg-dark)')};
+          border: 1px solid ${isActive ? 'var(--primary)' : (isAssigned ? 'var(--border-color)' : 'var(--border-color)')};
         ">
           <!-- Left: Slot Number & Details -->
           <div style="display: flex; align-items: center; gap: 0.6rem; min-width: 0; flex: 1;">
             <span style="
               font-weight: 800; font-size: 0.85rem; padding: 0.2rem 0.45rem; border-radius: 4px;
-              background: ${isActive ? 'var(--primary)' : 'rgba(255, 255, 255, 0.1)'}; color: white;
+              background: ${isActive ? 'var(--primary)' : 'var(--border-color)'}; color: ${isActive ? '#FFFFFF' : 'var(--text-main)'};
             ">
               #${slot.number}
             </span>
 
             <div style="min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
               ${isAssigned ? `
-                <div style="font-weight: 600; color: white; font-size: 0.88rem; overflow: hidden; text-overflow: ellipsis;">
+                <div style="font-weight: 600; color: var(--text-main); font-size: 0.88rem; overflow: hidden; text-overflow: ellipsis;">
                   ${slot.hymn.title_es}
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis;">
@@ -389,13 +385,13 @@ export async function openCustomHymnalBuilderModal(hymnalId = null, onSaveSucces
 
       return `
         <div style="
-          background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color);
+          background: var(--bg-dark); border: 1px solid var(--border-color);
           border-radius: var(--radius-sm); padding: 0.65rem 0.85rem;
           display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;
         ">
           <div style="min-width: 0; flex: 1;">
             <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-              <span style="font-weight: 600; color: white; font-size: 0.9rem;">
+              <span style="font-weight: 600; color: var(--text-main); font-size: 0.9rem;">
                 ${hymn.title_es}
               </span>
               ${hymn.sourceNumber ? `

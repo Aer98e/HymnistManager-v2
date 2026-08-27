@@ -35,27 +35,18 @@ export function renderAuthView(isSignUp = false) {
           ${isSignUp ? `
             <div>
               <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem;">Nombre Completo</label>
-              <input type="text" id="auth-name" required placeholder="Tu Nombre o Iglesia" style="
-                width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color);
-                border-radius: var(--radius-md); color: var(--text-main); font-size: 0.95rem; outline: none;
-              " />
+              <input type="text" id="auth-name" required placeholder="Tu Nombre o Iglesia" style="width: 100%; padding: 0.75rem;" />
             </div>
           ` : ''}
 
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem;">Correo Electrónico</label>
-            <input type="email" id="auth-email" required placeholder="correo@ejemplo.com" style="
-              width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color);
-              border-radius: var(--radius-md); color: var(--text-main); font-size: 0.95rem; outline: none;
-            " />
+            <input type="email" id="auth-email" required placeholder="correo@ejemplo.com" style="width: 100%; padding: 0.75rem;" />
           </div>
 
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem;">Contraseña</label>
-            <input type="password" id="auth-password" required placeholder="••••••••" style="
-              width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color);
-              border-radius: var(--radius-md); color: var(--text-main); font-size: 0.95rem; outline: none;
-            " />
+            <input type="password" id="auth-password" required placeholder="••••••••" style="width: 100%; padding: 0.75rem;" />
           </div>
 
           <div id="auth-error" style="color: var(--status-danger); font-size: 0.85rem; display: none; text-align: center;"></div>

@@ -216,7 +216,7 @@ export function setupHymnalsEvents() {
         <form style="display: flex; flex-direction: column; gap: 1rem;">
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Nuevo Nombre *</label>
-            <input type="text" id="edit-hymnal-name-input" value="${name}" required style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+            <input type="text" id="edit-hymnal-name-input" value="${name}" required style="width: 100%;" />
           </div>
         </form>
       `, async () => {
@@ -293,7 +293,7 @@ export function setupHymnalsEvents() {
         <form style="display: flex; flex-direction: column; gap: 1rem;">
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Nombre del Himnario *</label>
-            <input type="text" id="csv-hymnal-name" required placeholder="ej. Himnario Celebremos su Gloria" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+            <input type="text" id="csv-hymnal-name" required placeholder="ej. Himnario Celebremos su Gloria" style="width: 100%;" />
           </div>
 
           <div>
@@ -401,7 +401,7 @@ export function setupHymnalsEvents() {
         <form id="create-hymnal-form" style="display: flex; flex-direction: column; gap: 1rem;">
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Nombre del Himnario *</label>
-            <input type="text" id="hymnal-name" required placeholder="ej. Himnario de Majestad" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+            <input type="text" id="hymnal-name" required placeholder="ej. Himnario de Majestad" style="width: 100%;" />
           </div>
         </form>
       `, async () => {
@@ -511,11 +511,11 @@ async function openHymnalDetailsModal(id) {
           <form style="display: flex; flex-direction: column; gap: 1rem;">
             <div>
               <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Número en el Himnario *</label>
-              <input type="number" id="hymn-number-input" required min="1" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;" />
+              <input type="number" id="hymn-number-input" required min="1" style="width: 100%;" />
             </div>
             <div>
               <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Seleccionar Himno *</label>
-              <select id="hymn-select-input" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white;">
+              <select id="hymn-select-input" style="width: 100%;">
                 ${allHymns.map(h => `<option value="${h.id}">${h.title_es}</option>`).join('')}
               </select>
             </div>
@@ -543,11 +543,13 @@ export async function openSmartLinkerModal(hymnalId) {
   const queue = suggestions.filter(s => !s.isAlreadyPublic && s.candidates && s.candidates.length > 0);
 
   if (queue.length === 0) {
-    createModal(`🔗 Asistente de Enlace: ${hymnal.name}`, `
+    createModal(`Asistente de Enlace: ${hymnal.name}`, `
       <div style="text-align: center; padding: 2rem 1rem;">
-        <div style="font-size: 3rem; margin-bottom: 1rem;">🎉</div>
-        <h3 style="color: var(--status-success); margin-bottom: 0.5rem;">¡Sin coincidencias pendientes!</h3>
-        <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 400px; margin: 0 auto 1.5rem auto;">
+        <div style="color: var(--status-success); display: flex; justify-content: center; margin-bottom: 0.75rem;">
+          ${icons.check(36)}
+        </div>
+        <h3 style="color: var(--text-main); margin-bottom: 0.5rem; font-weight: 600;">¡Sin coincidencias pendientes!</h3>
+        <p class="subtitle" style="max-width: 400px; margin: 0 auto 1.5rem auto;">
           Todos los himnos de "${hymnal.name}" ya están vinculados o son piezas independientes únicas.
         </p>
       </div>
@@ -569,65 +571,55 @@ export async function openSmartLinkerModal(hymnalId) {
       <div style="display: flex; flex-direction: column; gap: 1rem;">
         <!-- Header & Progress -->
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 0.85rem; font-weight: 700; color: var(--primary);">
-            📌 Caso ${currentIndex + 1} de ${total}
+          <span class="badge badge-gold">
+            Caso ${currentIndex + 1} de ${total}
           </span>
-          <span style="font-size: 0.8rem; color: var(--text-muted);">
+          <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">
             Progreso: ${progressPercent}%
           </span>
         </div>
 
         <!-- Progress Bar -->
-        <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
-          <div style="width: ${progressPercent}%; height: 100%; background: var(--gradient-primary); transition: width 0.3s ease;"></div>
+        <div style="width: 100%; height: 6px; background: #E8E2D9; border-radius: 3px; overflow: hidden;">
+          <div style="width: ${progressPercent}%; height: 100%; background: var(--primary); transition: width 0.3s ease;"></div>
         </div>
 
         <!-- Main Card with Navigation Arrows -->
-        <div style="
-          background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color);
-          border-radius: var(--radius-md); padding: 1.25rem; position: relative;
-          display: flex; flex-direction: column; gap: 1rem;
-        ">
+        <div class="card" style="display: flex; flex-direction: column; gap: 1rem;">
           <!-- Navigation Bar -->
-          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.75rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
             <div>
-              <span style="font-size: 1.2rem; font-weight: 800; color: var(--primary);">#${item.number}</span>
-              <span style="font-size: 1.1rem; font-weight: 700; color: white; margin-left: 0.5rem;">${item.localHymn.title_es}</span>
+              <span style="font-size: 1.15rem; font-weight: 700; color: var(--primary);">#${item.number}</span>
+              <span style="font-size: 1.05rem; font-weight: 600; color: var(--text-main); margin-left: 0.4rem;">${item.localHymn.title_es}</span>
               ${item.localHymn.composer ? `<span style="color: var(--text-muted); font-size: 0.85rem;"> — ${item.localHymn.composer}</span>` : ''}
             </div>
 
             <!-- Gallery Controls -->
-            <div style="display: flex; gap: 0.5rem; align-items: center;">
-              <button id="carousel-skip-btn" title="Ignorar esta sugerencia por ahora" style="
-                background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-color); color: var(--text-muted);
-                padding: 0.35rem 0.75rem; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 500; cursor: pointer;
-              ">
-                🙈 Ignorar por ahora
+            <div style="display: flex; gap: 0.4rem; align-items: center;">
+              <button id="carousel-skip-btn" class="btn btn-outline btn-sm" title="Ignorar esta sugerencia por ahora">
+                ${icons.close(14)}
+                <span>Ignorar</span>
               </button>
 
-              <button id="carousel-prev-btn" ${currentIndex === 0 ? 'disabled' : ''} style="
-                background: rgba(255,255,255,0.08); border: 1px solid var(--border-color); color: white;
-                width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-                cursor: ${currentIndex === 0 ? 'not-allowed' : 'pointer'}; opacity: ${currentIndex === 0 ? '0.4' : '1'};
-              ">◀</button>
+              <button id="carousel-prev-btn" class="btn btn-outline btn-sm" ${currentIndex === 0 ? 'disabled style="opacity: 0.4; cursor: not-allowed;"' : ''}>
+                &lt;
+              </button>
 
-              <button id="carousel-next-btn" ${currentIndex === total - 1 ? 'disabled' : ''} style="
-                background: rgba(255,255,255,0.08); border: 1px solid var(--border-color); color: white;
-                width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-                cursor: ${currentIndex === total - 1 ? 'not-allowed' : 'pointer'}; opacity: ${currentIndex === total - 1 ? '0.4' : '1'};
-              ">▶</button>
+              <button id="carousel-next-btn" class="btn btn-outline btn-sm" ${currentIndex === total - 1 ? 'disabled style="opacity: 0.4; cursor: not-allowed;"' : ''}>
+                &gt;
+              </button>
             </div>
           </div>
 
           ${item.localHymn.first_line ? `
-            <div style="font-size: 0.85rem; color: var(--text-muted); font-style: italic; background: rgba(255,255,255,0.02); padding: 0.5rem 0.75rem; border-radius: var(--radius-sm);">
-              💬 1ª Línea: "${item.localHymn.first_line}"
+            <div style="font-size: 0.85rem; color: var(--text-muted); font-style: italic; background: var(--bg-dark); padding: 0.55rem 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+              1ª Estrofa: "${item.localHymn.first_line}"
             </div>
           ` : ''}
 
           <!-- Suggestions section -->
           <div>
-            <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.5px;">
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.6rem; letter-spacing: 0.05em;">
               Coincidencias Sugeridas en Catálogo Público Global:
             </div>
 
@@ -635,44 +627,38 @@ export async function openSmartLinkerModal(hymnalId) {
               ${item.candidates.map(candidate => {
                 const cHymn = candidate.publicHymn || candidate.hymn || {};
                 const linkedHymnalsText = cHymn.hymnal_hymn && cHymn.hymnal_hymn.length > 0
-                  ? cHymn.hymnal_hymn.map(hh => `${hh.hymnal ? hh.hymnal.name : 'Himnario'} (<strong style="color: white;">#${hh.number}</strong>)`).join(', ')
+                  ? cHymn.hymnal_hymn.map(hh => `${hh.hymnal ? hh.hymnal.name : 'Himnario'} (<strong>#${hh.number}</strong>)`).join(', ')
                   : null;
 
                 return `
                   <div style="
-                    background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color);
+                    background: var(--bg-dark); border: 1px solid var(--border-color);
                     border-radius: var(--radius-sm); padding: 0.75rem 1rem;
                     display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;
                   ">
                     <div>
-                      <div style="font-weight: 600; color: white; font-size: 0.95rem;">
+                      <div style="font-weight: 600; color: var(--text-main); font-size: 0.95rem;">
                         ${cHymn.title_es || 'Sin Título'}
                       </div>
-                      <div style="font-size: 0.8rem; color: var(--text-muted);">
+                      <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem;">
                         Compositor: ${cHymn.composer || 'Desconocido'} ${cHymn.first_line ? `| "${cHymn.first_line}"` : ''}
                       </div>
                       ${linkedHymnalsText ? `
-                        <div style="font-size: 0.78rem; color: var(--accent-cyan); margin-top: 0.25rem;">
-                          📖 Vinculado en: ${linkedHymnalsText}
+                        <div style="font-size: 0.78rem; color: var(--primary); margin-top: 0.25rem; display: flex; align-items: center; gap: 0.3rem;">
+                          ${icons.hymnals(13)}
+                          <span>Vinculado en: ${linkedHymnalsText}</span>
                         </div>
                       ` : ''}
                     </div>
 
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                      <span style="
-                        font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 12px;
-                        background: ${candidate.score >= 80 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)'};
-                        color: ${candidate.score >= 80 ? 'var(--status-success)' : 'var(--status-warning)'};
-                      ">
+                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                      <span class="${candidate.score >= 80 ? 'badge badge-success' : 'badge badge-gold'}">
                         ${candidate.score}% Coincidencia
                       </span>
 
-                      <button class="link-candidate-btn" data-local-id="${item.localHymn.id}" data-public-id="${cHymn.id}" style="
-                        background: var(--gradient-primary); border: none; color: white;
-                        padding: 0.4rem 0.8rem; border-radius: var(--radius-sm); font-size: 0.8rem;
-                        font-weight: 600; cursor: pointer; transition: transform 0.1s ease;
-                      ">
-                        🔗 Vincular
+                      <button class="btn btn-primary btn-sm link-candidate-btn" data-local-id="${item.localHymn.id}" data-public-id="${cHymn.id}">
+                        ${icons.contexts(14)}
+                        <span>Vincular</span>
                       </button>
                     </div>
                   </div>
