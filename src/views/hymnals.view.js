@@ -69,73 +69,9 @@ function renderHymnalCard(hymnal, currentUser) {
   return `
     <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; gap: 1rem; position: relative;">
       <div>
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; position: relative;">
-          <h3 style="font-size: 1.05rem; color: var(--text-main); font-weight: 600; padding-right: 0.5rem;">${hymnal.name}</h3>
-          
-          <div style="display: flex; align-items: center; gap: 0.5rem; position: relative;">
-            <span class="${status.class}">${status.label}</span>
-
-            <div style="position: relative; display: flex; align-items: center;">
-              <button class="hymnal-options-btn btn btn-outline btn-sm" data-id="${hymnal.id}" data-name="${hymnal.name}" title="Opciones de Himnario" style="padding: 0.2rem 0.5rem;">
-                ⋮
-              </button>
-
-              <!-- Floating Dropdown Menu -->
-              <div id="hymnal-bubbles-${hymnal.id}" class="hymnal-bubbles-container" style="
-                display: none; position: absolute; right: 0; top: calc(100% + 0.3rem); min-width: 200px;
-                background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md);
-                box-shadow: var(--shadow-card); z-index: 100; padding: 0.4rem;
-                flex-direction: column; gap: 0.25rem;
-              ">
-                <button class="open-builder-for-hymnal-btn" data-id="${hymnal.id}" title="Editor Consecutivo" style="
-                  width: 100%; text-align: left; background: transparent; border: none; color: var(--primary);
-                  padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 600;
-                " onmouseover="this.style.background='var(--badge-bg)'" onmouseout="this.style.background='transparent'">
-                  ${icons.music(14)} Editor Consecutivo
-                </button>
-
-                <button class="duplicate-hymnal-btn" data-id="${hymnal.id}" data-name="${hymnal.name}" title="Duplicar como copia privada" style="
-                  width: 100%; text-align: left; background: transparent; border: none; color: var(--text-main);
-                  padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;
-                " onmouseover="this.style.background='var(--bg-surface-hover)'" onmouseout="this.style.background='transparent'">
-                  ${icons.hymnals(14)} Duplicar Himnario
-                </button>
-
-                <button class="smart-linker-btn" data-id="${hymnal.id}" title="Asistente de Enlace Inteligente" style="
-                  width: 100%; text-align: left; background: transparent; border: none; color: var(--text-main);
-                  padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;
-                " onmouseover="this.style.background='var(--bg-surface-hover)'" onmouseout="this.style.background='transparent'">
-                  ${icons.contexts(14)} Enlace Inteligente
-                </button>
-
-                ${hymnal.type === 'private' || hymnal.type === 'rejected' ? `
-                  <button class="submit-hymnal-btn" data-id="${hymnal.id}" style="
-                    width: 100%; text-align: left; background: transparent; border: none; color: var(--primary);
-                    padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 600;
-                  " onmouseover="this.style.background='var(--badge-bg)'" onmouseout="this.style.background='transparent'">
-                    ${icons.check(14)} Enviar a Revisión
-                  </button>
-                ` : ''}
-
-                ${isOwner ? `
-                  <div style="height: 1px; background: var(--border-color); margin: 0.2rem 0;"></div>
-                  <button class="hymnal-edit-bubble-btn" data-id="${hymnal.id}" data-name="${hymnal.name}" title="Editar Nombre" style="
-                    width: 100%; text-align: left; background: transparent; border: none; color: var(--status-success);
-                    padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;
-                  " onmouseover="this.style.background='rgba(21, 128, 61, 0.08)'" onmouseout="this.style.background='transparent'">
-                    ${icons.edit(14)} Editar Nombre
-                  </button>
-
-                  <button class="hymnal-delete-bubble-btn" data-id="${hymnal.id}" data-name="${hymnal.name}" title="Eliminar Himnario" style="
-                    width: 100%; text-align: left; background: transparent; border: none; color: var(--status-danger);
-                    padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;
-                  " onmouseover="this.style.background='rgba(220, 38, 38, 0.08)'" onmouseout="this.style.background='transparent'">
-                    ${icons.trash(14)} Eliminar Himnario
-                  </button>
-                ` : ''}
-              </div>
-            </div>
-          </div>
+        <h3 style="font-size: 1.05rem; color: var(--text-main); font-weight: 600; padding-right: 2.2rem; margin-bottom: 0.35rem;">${hymnal.name}</h3>
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+          <span class="${status.class}">${status.label}</span>
         </div>
 
         <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.4rem;">
@@ -146,9 +82,71 @@ function renderHymnalCard(hymnal, currentUser) {
             <strong>Razón de rechazo:</strong> ${hymnal.rejection_reason}
           </div>
         ` : ''}
+
+        <!-- Options Button & Floating Menu (Positioned relative to card top-right) -->
+        <div style="position: absolute; top: 1.1rem; right: 1.1rem; z-index: 10;">
+          <button class="hymnal-options-btn btn btn-outline btn-sm" data-id="${hymnal.id}" data-name="${hymnal.name}" title="Opciones de Himnario" style="padding: 0.2rem 0.5rem;">
+            ⋮
+          </button>
+
+          <!-- Floating Dropdown Menu -->
+          <div id="hymnal-bubbles-${hymnal.id}" class="hymnal-bubbles-container" style="
+            display: none; position: absolute; right: 0; top: calc(100% + 0.3rem); min-width: 200px;
+            background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md);
+            box-shadow: var(--shadow-card); z-index: 200; padding: 0.4rem;
+            flex-direction: column; gap: 0.25rem;
+          ">
+            <button class="open-builder-for-hymnal-btn" data-id="${hymnal.id}" title="Editor Consecutivo" style="
+              width: 100%; text-align: left; background: transparent; border: none; color: var(--primary);
+              padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 600;
+            " onmouseover="this.style.background='var(--badge-bg)'" onmouseout="this.style.background='transparent'">
+              ${icons.music(14)} Editor Consecutivo
+            </button>
+
+            <button class="duplicate-hymnal-btn" data-id="${hymnal.id}" data-name="${hymnal.name}" title="Duplicar como copia privada" style="
+              width: 100%; text-align: left; background: transparent; border: none; color: var(--text-main);
+              padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;
+            " onmouseover="this.style.background='var(--bg-surface-hover)'" onmouseout="this.style.background='transparent'">
+              ${icons.hymnals(14)} Duplicar Himnario
+            </button>
+
+            <button class="smart-linker-btn" data-id="${hymnal.id}" title="Asistente de Enlace Inteligente" style="
+              width: 100%; text-align: left; background: transparent; border: none; color: var(--text-main);
+              padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;
+            " onmouseover="this.style.background='var(--bg-surface-hover)'" onmouseout="this.style.background='transparent'">
+              ${icons.contexts(14)} Enlace Inteligente
+            </button>
+
+            ${hymnal.type === 'private' || hymnal.type === 'rejected' ? `
+              <button class="submit-hymnal-btn" data-id="${hymnal.id}" style="
+                width: 100%; text-align: left; background: transparent; border: none; color: var(--primary);
+                padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 600;
+              " onmouseover="this.style.background='var(--badge-bg)'" onmouseout="this.style.background='transparent'">
+                ${icons.check(14)} Enviar a Revisión
+              </button>
+            ` : ''}
+
+            ${isOwner ? `
+              <div style="height: 1px; background: var(--border-color); margin: 0.2rem 0;"></div>
+              <button class="hymnal-edit-bubble-btn" data-id="${hymnal.id}" data-name="${hymnal.name}" title="Editar Nombre" style="
+                width: 100%; text-align: left; background: transparent; border: none; color: var(--status-success);
+                padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;
+              " onmouseover="this.style.background='rgba(21, 128, 61, 0.08)'" onmouseout="this.style.background='transparent'">
+                ${icons.edit(14)} Editar Nombre
+              </button>
+
+              <button class="hymnal-delete-bubble-btn" data-id="${hymnal.id}" data-name="${hymnal.name}" title="Eliminar Himnario" style="
+                width: 100%; text-align: left; background: transparent; border: none; color: var(--status-danger);
+                padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;
+              " onmouseover="this.style.background='rgba(220, 38, 38, 0.08)'" onmouseout="this.style.background='transparent'">
+                ${icons.trash(14)} Eliminar Himnario
+              </button>
+            ` : ''}
+          </div>
+        </div>
       </div>
 
-      <div style="border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+      <div style="border-top: 1px solid var(--border-color); padding-top: 0.75rem; margin-top: 0.5rem;">
         <button class="btn btn-outline btn-sm view-hymnal-details-btn" data-id="${hymnal.id}" style="width: 100%;">
           ${icons.hymns(14)}
           <span>Ver Himnos</span>
@@ -459,7 +457,7 @@ async function openHymnalDetailsModal(id) {
         </div>
       </div>
 
-      <div style="max-height: 50vh; overflow-y: auto;">
+      <div class="table-responsive" style="max-height: 50vh; overflow-y: auto;">
         ${details.hymnal_hymn && details.hymnal_hymn.length > 0 ? `
           <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem; text-align: left;">
             <thead>
@@ -631,12 +629,12 @@ export async function openSmartLinkerModal(hymnalId) {
                   : null;
 
                 return `
-                  <div style="
+                  <div class="candidate-card-item" style="
                     background: var(--bg-dark); border: 1px solid var(--border-color);
-                    border-radius: var(--radius-sm); padding: 0.75rem 1rem;
-                    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;
+                    border-radius: var(--radius-sm); padding: 0.75rem 0.85rem;
+                    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;
                   ">
-                    <div>
+                    <div style="flex: 1; min-width: 200px;">
                       <div style="font-weight: 600; color: var(--text-main); font-size: 0.95rem;">
                         ${cHymn.title_es || 'Sin Título'}
                       </div>
@@ -644,14 +642,14 @@ export async function openSmartLinkerModal(hymnalId) {
                         Compositor: ${cHymn.composer || 'Desconocido'} ${cHymn.first_line ? `| "${cHymn.first_line}"` : ''}
                       </div>
                       ${linkedHymnalsText ? `
-                        <div style="font-size: 0.78rem; color: var(--primary); margin-top: 0.25rem; display: flex; align-items: center; gap: 0.3rem;">
+                        <div style="font-size: 0.78rem; color: var(--primary); margin-top: 0.25rem; display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap;">
                           ${icons.hymnals(13)}
                           <span>Vinculado en: ${linkedHymnalsText}</span>
                         </div>
                       ` : ''}
                     </div>
 
-                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <div class="candidate-actions-row" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                       <span class="${candidate.score >= 80 ? 'badge badge-success' : 'badge badge-gold'}">
                         ${candidate.score}% Coincidencia
                       </span>

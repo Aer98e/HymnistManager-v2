@@ -6,69 +6,36 @@ export function renderNavbar(currentUser) {
   const isAdmin = currentUser && currentUser.app_metadata?.role === 'admin';
 
   return `
-    <header style="
-      background: var(--bg-surface);
-      border-bottom: 1px solid var(--border-color);
-      padding: 0.75rem 1.75rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
-    ">
-      <div style="display: flex; align-items: center; gap: 1rem;">
+    <header class="app-navbar">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <button id="mobile-menu-btn" class="mobile-menu-toggle" aria-label="Abrir menú de navegación">
+          ${icons.menu(22)}
+        </button>
+
         <a href="#/dashboard" style="text-decoration: none; display: flex; align-items: center; gap: 0.6rem;">
           <span style="color: var(--primary); display: flex; align-items: center;">
             ${icons.music(22)}
           </span>
-          <span style="
-            font-family: var(--font-heading);
-            font-weight: 600;
-            font-size: 1.2rem;
-            color: var(--text-main);
-          ">
+          <span class="brand-title">
             Hymn Manager
           </span>
         </a>
       </div>
 
-      <div style="display: flex; align-items: center; gap: 1rem;">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
         ${currentUser ? `
-          <div style="
-            display: flex;
-            align-items: center;
-            gap: 0.65rem;
-            background: var(--bg-dark);
-            padding: 0.35rem 0.75rem;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-color);
-          ">
-            <div style="
-              width: 30px;
-              height: 30px;
-              border-radius: 50%;
-              background: var(--badge-bg);
-              color: var(--primary);
-              border: 1px solid rgba(30, 64, 175, 0.2);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-family: var(--font-family);
-              font-weight: 600;
-              font-size: 0.85rem;
-            ">
+          <div class="user-badge-container">
+            <div class="user-avatar">
               ${userName.charAt(0).toUpperCase()}
             </div>
-            <div style="display: flex; flex-direction: column;">
-              <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-main);">${userName}</span>
+            <div class="user-details">
+              <span class="user-name-text">${userName}</span>
               ${isAdmin ? `<span style="font-size: 0.7rem; color: var(--primary); font-weight: 600;">Administrador</span>` : ''}
             </div>
           </div>
           <button id="logout-btn" class="btn btn-outline btn-sm">
             ${icons.logout(14)}
-            <span>Cerrar Sesión</span>
+            <span class="btn-label">Cerrar Sesión</span>
           </button>
         ` : `
           <a href="#/login" class="btn btn-primary btn-sm">
@@ -87,6 +54,16 @@ export function setupNavbarEvents() {
     logoutBtn.addEventListener('click', async () => {
       await authService.signOut();
       window.location.hash = '#/login';
+    });
+  }
+
+  const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+  if (mobileMenuBtn) {
+    mobileMenuBtn.addEventListener('click', () => {
+      const sidebar = document.getElementById('app-sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      if (sidebar) sidebar.classList.toggle('open');
+      if (overlay) overlay.classList.toggle('open');
     });
   }
 }

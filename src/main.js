@@ -1,7 +1,7 @@
 import './assets/styles/main.css';
 import { authService } from './services/auth.service.js';
 import { renderNavbar, setupNavbarEvents } from './components/navbar.js';
-import { renderSidebar } from './components/sidebar.js';
+import { renderSidebar, setupSidebarEvents } from './components/sidebar.js';
 import { renderAuthView, setupAuthEvents } from './views/auth.view.js';
 import { renderDashboard } from './views/dashboard.view.js';
 import { renderHymnsView, setupHymnsEvents } from './views/hymns.view.js';
@@ -84,6 +84,7 @@ class AppRouter {
     `;
 
     setupNavbarEvents();
+    setupSidebarEvents();
     if (eventSetup) {
       await eventSetup();
     }

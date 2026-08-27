@@ -16,16 +16,8 @@ export function renderSidebar(currentPath = '/dashboard', currentUser = null) {
   }
 
   return `
-    <aside style="
-      width: 240px;
-      background: var(--bg-surface);
-      border-right: 1px solid var(--border-color);
-      padding: 1.5rem 0.85rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-      flex-shrink: 0;
-    ">
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+    <aside id="app-sidebar" class="sidebar">
       <div style="
         font-family: var(--font-family);
         font-size: 0.7rem;
@@ -42,20 +34,7 @@ export function renderSidebar(currentPath = '/dashboard', currentUser = null) {
         const isActive = currentPath === item.path;
         const renderIcon = icons[item.iconKey] || icons.music;
         return `
-          <a href="#${item.path}" style="
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.65rem 0.85rem;
-            border-radius: var(--radius-md);
-            text-decoration: none;
-            color: ${isActive ? 'var(--primary)' : 'var(--text-muted)'};
-            background: ${isActive ? 'var(--badge-bg)' : 'transparent'};
-            border: 1px solid ${isActive ? 'rgba(30, 64, 175, 0.2)' : 'transparent'};
-            font-weight: ${isActive ? '600' : '400'};
-            font-size: 0.875rem;
-            transition: var(--transition-fast);
-          ">
+          <a href="#${item.path}" class="nav-item-link ${isActive ? 'active' : ''}">
             <span style="display: flex; align-items: center; color: ${isActive ? 'var(--primary)' : 'var(--text-muted)'};">
               ${renderIcon(17)}
             </span>
@@ -65,4 +44,24 @@ export function renderSidebar(currentPath = '/dashboard', currentUser = null) {
       }).join('')}
     </aside>
   `;
+}
+
+export function setupSidebarEvents() {
+  const sidebar = document.getElementById('app-sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+
+  const closeMobileSidebar = () => {
+    if (sidebar) sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('open');
+  };
+
+  if (overlay) {
+    overlay.addEventListener('click', closeMobileSidebar);
+  }
+
+  if (sidebar) {
+    sidebar.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', closeMobileSidebar);
+    });
+  }
 }
