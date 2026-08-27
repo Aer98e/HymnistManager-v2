@@ -2,35 +2,33 @@ import { contextsService } from '../services/contexts.service.js';
 import { hymnsService } from '../services/hymns.service.js';
 import { authService } from '../services/auth.service.js';
 import { createModal, showConfirmModal, showToast } from '../components/modal.js';
+import { icons } from '../utils/icons.js';
 
 export async function renderContextsView() {
   const contexts = await contextsService.getContexts();
   const prefs = await authService.getUserPreferences();
 
   return `
-    <div style="padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <div style="padding: 2.5rem; max-width: 1200px; margin: 0 auto; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
         <div>
-          <h1 style="font-size: 1.8rem; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-            🎯 Contextos & Himnos Nuevos
+          <h1 style="font-size: 2rem; font-style: italic; color: var(--text-main); margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.6rem;">
+            <span style="color: var(--primary); display: flex; align-items: center;">${icons.contexts(28)}</span>
+            <span>Contextos & Himnos Nuevos</span>
           </h1>
-          <p style="color: var(--text-muted); font-size: 0.9rem;">
-            Organiza tus tipos de reunión (Culto Dominical, Jóvenes) y supervisa el aprendizaje de himnos nuevos
+          <p class="subtitle">
+            Organiza los tipos de reunión litúrgica y supervisa el proceso de aprendizaje congregacional.
           </p>
         </div>
 
         <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-          <button id="config-threshold-btn" style="
-            background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main);
-            padding: 0.65rem 1rem; border-radius: var(--radius-md); font-weight: 500; cursor: pointer;
-          ">
-            ⚙️ Umbral: ${prefs.new_hymn_threshold} usos
+          <button id="config-threshold-btn" class="btn btn-secondary">
+            ${icons.filter(16)}
+            <span>Umbral: ${prefs.new_hymn_threshold} usos</span>
           </button>
-          <button id="create-context-btn" style="
-            background: var(--gradient-primary); border: none; color: white; padding: 0.65rem 1.2rem;
-            border-radius: var(--radius-md); font-weight: 600; cursor: pointer;
-          ">
-            ➕ Nuevo Contexto
+          <button id="create-context-btn" class="btn btn-primary">
+            ${icons.plus(16)}
+            <span>Nuevo Contexto</span>
           </button>
         </div>
       </div>
@@ -52,38 +50,35 @@ export async function refreshContextsView() {
 
 function renderContextCard(ctx, threshold) {
   return `
-    <div style="
-      background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md);
-      padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1.25rem;
-    ">
+    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; gap: 1.25rem;">
       <div>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-          <h3 style="font-size: 1.2rem; color: var(--text-main); font-weight: 600;">${ctx.name}</h3>
-          <button class="delete-context-btn" data-id="${ctx.id}" data-name="${ctx.name}" style="background: none; border: none; color: var(--status-danger); cursor: pointer; font-size: 1.1rem;">🗑️</button>
+          <h3 style="font-size: 1.1rem; color: var(--text-main); font-weight: 600;">${ctx.name}</h3>
+          <button class="btn btn-danger btn-sm delete-context-btn" data-id="${ctx.id}" data-name="${ctx.name}" title="Eliminar Contexto">
+            ${icons.trash(14)}
+          </button>
         </div>
 
         <div style="
-          background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.2);
-          padding: 0.8rem; border-radius: var(--radius-sm); margin-bottom: 1rem;
+          background: var(--badge-bg); border: 1px solid rgba(30, 64, 175, 0.15);
+          padding: 0.75rem 0.85rem; border-radius: var(--radius-sm); margin-bottom: 1rem;
         ">
-          <div style="font-size: 0.8rem; color: var(--accent); font-weight: 600; text-transform: uppercase;">Categoría Automática</div>
+          <div style="font-size: 0.75rem; color: var(--primary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Categoría Automática</div>
           <div style="font-size: 0.9rem; color: var(--text-main); font-weight: 500;">${ctx.new_hymns_category ? ctx.new_hymns_category.name : 'Categoría Nuevos'}</div>
         </div>
 
         <div>
-          <h4 style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;">✨ Himnos en Aprendizaje (Menos de ${threshold} usos)</h4>
+          <h4 style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 500;">Himnos en Aprendizaje (Menos de ${threshold} usos)</h4>
           <div id="new-hymns-container-${ctx.id}" style="font-size: 0.85rem; color: var(--text-muted);">
-            Cargando himnos nuevos dinámicos...
+            Cargando himnos nuevos...
           </div>
         </div>
       </div>
 
       <div style="border-top: 1px solid var(--border-color); padding-top: 0.75rem; display: flex; justify-content: flex-end;">
-        <button class="add-new-hymn-to-ctx-btn" data-ctx-id="${ctx.id}" data-cat-id="${ctx.new_hymns_category_id}" style="
-          background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main);
-          padding: 0.4rem 0.8rem; border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer;
-        ">
-          ➕ Marcar Himno como Nuevo
+        <button class="btn btn-outline btn-sm add-new-hymn-to-ctx-btn" data-ctx-id="${ctx.id}" data-cat-id="${ctx.new_hymns_category_id}">
+          ${icons.plus(14)}
+          <span>Marcar Himno como Nuevo</span>
         </button>
       </div>
     </div>
@@ -106,9 +101,12 @@ export async function setupContextsEvents() {
         el.innerHTML = `
           <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.4rem;">
             ${activeHymns.map(item => `
-              <li style="display: flex; justify-content: space-between; background: rgba(0,0,0,0.2); padding: 0.4rem 0.6rem; border-radius: var(--radius-sm);">
-                <span>🎵 ${item.hymn ? item.hymn.title_es : 'Himno'}</span>
-                <span style="font-weight: 600; color: var(--status-warning);">${item.usage_count} / ${item.new_hymn_threshold} usos</span>
+              <li style="display: flex; justify-content: space-between; background: var(--bg-dark); padding: 0.4rem 0.6rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                <span style="display: flex; align-items: center; gap: 0.35rem;">
+                  <span style="color: var(--primary);">${icons.music(14)}</span>
+                  <span>${item.hymn ? item.hymn.title_es : 'Himno'}</span>
+                </span>
+                <span class="badge badge-gold">${item.usage_count} / ${item.new_hymn_threshold} usos</span>
               </li>
             `).join('')}
           </ul>

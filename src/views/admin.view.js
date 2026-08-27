@@ -1,18 +1,20 @@
 import { hymnalsService } from '../services/hymnals.service.js';
 import { createModal, showConfirmModal, showToast } from '../components/modal.js';
 import { openSmartLinkerModal } from './hymnals.view.js';
+import { icons } from '../utils/icons.js';
 
 export async function renderAdminView() {
   const pendingHymnals = await hymnalsService.getPendingHymnals();
 
   return `
-    <div style="padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
+    <div style="padding: 2.5rem; max-width: 1200px; margin: 0 auto; width: 100%;">
       <div style="margin-bottom: 2rem;">
-        <h1 style="font-size: 1.8rem; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-          🛡️ Panel de Administración
+        <h1 style="font-size: 2rem; font-style: italic; color: var(--text-main); margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.6rem;">
+          <span style="color: var(--primary); display: flex; align-items: center;">${icons.admin(28)}</span>
+          <span>Panel de Administración</span>
         </h1>
-        <p style="color: var(--text-muted); font-size: 0.9rem;">
-          Revisión minuciosa, verificación de coincidencia y aprobación de himnarios
+        <p class="subtitle">
+          Revisión minuciosa, verificación de coincidencia y aprobación de colecciones públicas.
         </p>
       </div>
 
@@ -39,45 +41,34 @@ function renderPendingCard(hymnal) {
   const hymnCount = hymnal.hymnal_hymn ? hymnal.hymnal_hymn.length : 0;
 
   return `
-    <div style="
-      background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md);
-      padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;
-    ">
+    <div class="card">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
         <div>
-          <h3 style="font-size: 1.2rem; color: var(--text-main); font-weight: 600;">${hymnal.name}</h3>
+          <h3 style="font-size: 1.15rem; color: var(--text-main); font-weight: 600;">${hymnal.name}</h3>
           <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
             Solicitado el: ${new Date(hymnal.created_at).toLocaleDateString()} | Idioma: ${hymnal.language ? hymnal.language.name : 'Español'} | Himnos contenidos: ${hymnCount}
           </div>
         </div>
 
-        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-          <button class="inspect-hymnal-admin-btn" data-id="${hymnal.id}" data-name="${hymnal.name}" style="
-            background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main);
-            padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 500; cursor: pointer;
-          ">
-            👁️ Inspeccionar Detalles & Letras
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button class="btn btn-outline btn-sm inspect-hymnal-admin-btn" data-id="${hymnal.id}" data-name="${hymnal.name}">
+            ${icons.hymns(14)}
+            <span>Inspeccionar Detalles</span>
           </button>
 
-          <button class="smart-linker-admin-btn" data-id="${hymnal.id}" style="
-            background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.4); color: var(--primary);
-            padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 500; cursor: pointer;
-          ">
-            🔗 Enlace Inteligente (Deduplicador)
+          <button class="btn btn-secondary btn-sm smart-linker-admin-btn" data-id="${hymnal.id}">
+            ${icons.contexts(14)}
+            <span>Enlace Inteligente</span>
           </button>
 
-          <button class="reject-hymnal-admin-btn" data-id="${hymnal.id}" data-name="${hymnal.name}" style="
-            background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--status-danger);
-            padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer;
-          ">
-            ❌ Rechazar
+          <button class="btn btn-danger btn-sm reject-hymnal-admin-btn" data-id="${hymnal.id}" data-name="${hymnal.name}">
+            ${icons.close(14)}
+            <span>Rechazar</span>
           </button>
 
-          <button class="approve-hymnal-admin-btn" data-id="${hymnal.id}" data-name="${hymnal.name}" data-count="${hymnCount}" style="
-            background: var(--status-success); border: none; color: white;
-            padding: 0.5rem 1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer;
-          ">
-            ✅ Aprobar Publicación
+          <button class="btn btn-primary btn-sm approve-hymnal-admin-btn" data-id="${hymnal.id}" data-name="${hymnal.name}" data-count="${hymnCount}">
+            ${icons.check(14)}
+            <span>Aprobar Publicación</span>
           </button>
         </div>
       </div>

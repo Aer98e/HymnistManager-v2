@@ -35,7 +35,7 @@ export function createModal(title, contentHtml, onSave = null) {
         justify-content: space-between;
         align-items: center;
       ">
-        <h3 style="margin: 0; font-size: 1.2rem; color: var(--text-main);">${title}</h3>
+        <h3 style="margin: 0; font-family: var(--font-heading); font-size: 1.3rem; color: var(--text-main); font-style: italic;">${title}</h3>
         <button id="modal-close-btn" style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">&times;</button>
       </div>
 

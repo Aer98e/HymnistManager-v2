@@ -4,6 +4,7 @@ import { hymnsService } from '../services/hymns.service.js';
 import { hymnalsService } from '../services/hymnals.service.js';
 import { authService } from '../services/auth.service.js';
 import { createModal, showToast } from '../components/modal.js';
+import { icons } from '../utils/icons.js';
 
 export async function renderPlannerView() {
   const programs = await programsService.getPrograms();
@@ -11,37 +12,32 @@ export async function renderPlannerView() {
   const preferredHymnalName = prefs.preferred_hymnal ? prefs.preferred_hymnal.name : 'Ninguno (Seleccionar)';
 
   return `
-    <div style="padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <div style="padding: 2.5rem; max-width: 1200px; margin: 0 auto; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
         <div>
-          <h1 style="font-size: 1.8rem; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-            📅 Planificador de Programas
+          <h1 style="font-size: 2rem; font-style: italic; color: var(--text-main); margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.6rem;">
+            <span style="color: var(--primary); display: flex; align-items: center;">${icons.planner(28)}</span>
+            <span>Planificador Litúrgico</span>
           </h1>
-          <p style="color: var(--text-muted); font-size: 0.9rem;">
-            Diseña tus programas musicales con el asistente de sugerencias inteligentes y alertas de recurrencia.
+          <p class="subtitle">
+            Diseña tus órdenes de servicio con sugerencias inteligentes y análisis de recurrencia.
           </p>
         </div>
 
         <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
-          <button id="planner-intelligence-btn" style="
-            background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.35); color: #c084fc;
-            padding: 0.65rem 1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.4rem;
-          ">
-            <span>💡</span> Asistente Inteligente
+          <button id="planner-intelligence-btn" class="btn btn-outline">
+            ${icons.music(16)}
+            <span>Asistente Inteligente</span>
           </button>
 
-          <button id="config-preferred-hymnal-btn" style="
-            background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main);
-            padding: 0.65rem 1rem; border-radius: var(--radius-md); font-weight: 500; cursor: pointer;
-          ">
-            📖 Himnario: <strong>${preferredHymnalName}</strong>
+          <button id="config-preferred-hymnal-btn" class="btn btn-secondary">
+            ${icons.hymnals(16)}
+            <span>Himnario: <strong>${preferredHymnalName}</strong></span>
           </button>
 
-          <button id="create-program-btn" style="
-            background: var(--gradient-primary); border: none; color: white; padding: 0.65rem 1.2rem;
-            border-radius: var(--radius-md); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;
-          ">
-            <span>➕</span> Crear Programa
+          <button id="create-program-btn" class="btn btn-primary">
+            ${icons.plus(16)}
+            <span>Crear Programa</span>
           </button>
         </div>
       </div>
@@ -70,35 +66,30 @@ function renderProgramCard(program, preferredHymnalId) {
   const hymnList = program.program_hymn || [];
 
   return `
-    <div style="
-      background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md);
-      padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;
-    ">
+    <div class="card">
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
         <div>
-          <h3 style="font-size: 1.2rem; color: var(--text-main); font-weight: 600;">${program.name || 'Programa Musical'}</h3>
-          <div style="font-size: 0.85rem; color: var(--primary); font-weight: 500;">📅 ${formattedDate} | Contexto: ${program.context ? program.context.name : 'General'}</div>
+          <h3 style="font-size: 1.15rem; color: var(--text-main); font-weight: 600;">${program.name || 'Programa Musical'}</h3>
+          <div style="font-size: 0.85rem; color: var(--primary); font-weight: 500; display: flex; align-items: center; gap: 0.4rem; margin-top: 0.2rem;">
+            ${icons.planner(14)}
+            <span>${formattedDate} | Contexto: ${program.context ? program.context.name : 'General'}</span>
+          </div>
         </div>
 
         <div style="display: flex; gap: 0.5rem; align-items: center;">
-          <button class="export-program-btn" data-id="${program.id}" style="
-            background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--status-success);
-            padding: 0.4rem 0.8rem; border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer; font-weight: 600;
-          ">
-            📲 Exportar / Generar Ficha
+          <button class="btn btn-secondary btn-sm export-program-btn" data-id="${program.id}">
+            ${icons.music(14)}
+            <span>Generar Ficha / Exportar</span>
           </button>
           
-          <button class="delete-program-btn" data-id="${program.id}" data-name="${program.name || 'Programa'}" title="Eliminar programa" style="
-            background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5;
-            padding: 0.4rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer; font-weight: 600;
-          ">
-            🗑️
+          <button class="btn btn-danger btn-sm delete-program-btn" data-id="${program.id}" data-name="${program.name || 'Programa'}" title="Eliminar programa">
+            ${icons.trash(14)}
           </button>
         </div>
       </div>
 
-      <div>
-        <h4 style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;">Repertorio Seleccionado (${hymnList.length} himnos)</h4>
+      <div style="margin-top: 1rem;">
+        <h4 style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Repertorio Seleccionado (${hymnList.length} himnos)</h4>
         <div style="display: flex; flex-direction: column; gap: 0.4rem;">
           ${hymnList.length > 0 ? hymnList.map((ph, idx) => {
             const hymn = ph.hymn;
@@ -106,7 +97,7 @@ function renderProgramCard(program, preferredHymnalId) {
             if (hymn && preferredHymnalId && hymn.hymnal_hymn) {
               const mapping = hymn.hymnal_hymn.find(hh => hh.hymnal_id === preferredHymnalId);
               if (mapping) {
-                numberText = `<span style="color: var(--status-warning); font-weight: 700;">#${mapping.number}</span> — `;
+                numberText = `<span class="badge badge-gold" style="margin-right: 0.35rem;">#${mapping.number}</span>`;
               }
             }
 
@@ -117,10 +108,10 @@ function renderProgramCard(program, preferredHymnalId) {
               const keyName = uh.key_note ? uh.key_note.name_es : '';
               const keyMode = uh.key_mode === 'minor' ? 'm' : '';
               const keyDisplay = keyName ? `${keyName}${keyMode}` : '';
-              const energyDisplay = uh.energy ? `⚡${uh.energy}/5` : '';
+              const energyDisplay = uh.energy ? `Energía: ${uh.energy}/5` : '';
               
               if (keyDisplay || energyDisplay) {
-                musicDetails = `<span style="background: rgba(59,130,246,0.15); color: #93c5fd; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.75rem; margin-left: 0.4rem; font-weight: 600;">🎼 ${keyDisplay} ${energyDisplay}</span>`;
+                musicDetails = `<span class="badge badge-gold" style="margin-left: 0.4rem;">Tono: ${keyDisplay} ${energyDisplay}</span>`;
               }
             }
 

@@ -4,6 +4,7 @@ import { authService } from '../services/auth.service.js';
 import { createModal, showConfirmModal, showToast } from '../components/modal.js';
 import { normalizeText } from '../utils/text.utils.js';
 import { generateUserHymnCSVTemplate, parseAndValidateUserHymnCSV } from '../utils/user_hymn_csv.utils.js';
+import { icons } from '../utils/icons.js';
 
 export async function renderHymnsView() {
   const hymns = await hymnsService.getHymns();
@@ -11,70 +12,68 @@ export async function renderHymnsView() {
   const currentUser = await authService.getCurrentUser();
 
   return `
-    <div style="padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <div style="padding: 2.5rem; max-width: 1200px; margin: 0 auto; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
         <div>
-          <h1 style="font-size: 1.8rem; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-            🎵 Biblioteca de Himnos
+          <h1 style="font-size: 2rem; font-style: italic; color: var(--text-main); margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.6rem;">
+            <span style="color: var(--primary); display: flex; align-items: center;">${icons.hymns(28)}</span>
+            <span>Biblioteca de Himnos</span>
           </h1>
-          <p style="color: var(--text-muted); font-size: 0.9rem;">
-            Explora himnos globales, gestiona tus himnos sueltos y personaliza atributos musicales
+          <p class="subtitle">
+            Explora himnos globales, gestiona repertorios y personaliza atributos musicales con rigor.
           </p>
         </div>
         <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; position: relative;">
           <!-- Dropdown Trigger for Tonalities Tools -->
           <div style="position: relative; display: inline-block;">
-            <button id="tonalities-dropdown-toggle" style="
-              background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.35); color: #c084fc;
-              padding: 0.65rem 1.1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;
-            ">
-              <span>🎼</span> Tonalidades y Atributos <span style="font-size: 0.75rem;">▼</span>
+            <button id="tonalities-dropdown-toggle" class="btn btn-outline">
+              ${icons.music(16)}
+              <span>Tonalidades & Atributos</span>
+              <span style="font-size: 0.75rem; margin-left: 0.2rem;">▼</span>
             </button>
 
             <!-- Dropdown Menu items -->
             <div id="tonalities-dropdown-menu" style="
-              display: none; position: absolute; right: 0; top: calc(100% + 0.5rem); min-width: 230px;
+              display: none; position: absolute; right: 0; top: calc(100% + 0.5rem); min-width: 240px;
               background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md);
-              box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 200; padding: 0.5rem; backdrop-filter: blur(12px);
+              box-shadow: 0 10px 25px rgba(0,0,0,0.6); z-index: 200; padding: 0.5rem; backdrop-filter: blur(12px);
               flex-direction: column; gap: 0.25rem;
             ">
               <button id="wizard-user-hymn-btn" style="
                 width: 100%; text-align: left; background: transparent; border: none; color: var(--text-main);
                 padding: 0.6rem 0.8rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.88rem;
                 display: flex; align-items: center; gap: 0.5rem; transition: background 0.15s ease;
-              " onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='transparent'">
-                <span>🪄</span> Asistente In-App (Paso a Paso)
+              " onmouseover="this.style.background='rgba(214,175,55,0.08)'" onmouseout="this.style.background='transparent'">
+                ${icons.music(16)} Asistente In-App (Paso a Paso)
               </button>
               <button id="manage-user-hymn-btn" style="
                 width: 100%; text-align: left; background: transparent; border: none; color: var(--text-main);
                 padding: 0.6rem 0.8rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.88rem;
                 display: flex; align-items: center; gap: 0.5rem; transition: background 0.15s ease;
-              " onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='transparent'">
-                <span>⚙️</span> Mis Tonalidades Guardadas
+              " onmouseover="this.style.background='rgba(214,175,55,0.08)'" onmouseout="this.style.background='transparent'">
+                ${icons.filter(16)} Mis Tonalidades Guardadas
               </button>
               <div style="height: 1px; background: var(--border-color); margin: 0.2rem 0;"></div>
               <button id="export-user-hymn-csv-btn" style="
                 width: 100%; text-align: left; background: transparent; border: none; color: var(--text-main);
                 padding: 0.6rem 0.8rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.88rem;
                 display: flex; align-items: center; gap: 0.5rem; transition: background 0.15s ease;
-              " onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='transparent'">
-                <span>📥</span> Descargar Plantilla CSV
+              " onmouseover="this.style.background='rgba(214,175,55,0.08)'" onmouseout="this.style.background='transparent'">
+                ${icons.hymnals(16)} Descargar Plantilla CSV
               </button>
               <button id="import-user-hymn-csv-btn" style="
                 width: 100%; text-align: left; background: transparent; border: none; color: var(--text-main);
                 padding: 0.6rem 0.8rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.88rem;
                 display: flex; align-items: center; gap: 0.5rem; transition: background 0.15s ease;
-              " onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='transparent'">
-                <span>📤</span> Importar Tonalidades CSV
+              " onmouseover="this.style.background='rgba(214,175,55,0.08)'" onmouseout="this.style.background='transparent'">
+                ${icons.plus(16)} Importar Tonalidades CSV
               </button>
             </div>
           </div>
 
-          <button id="add-hymn-btn" style="
-            background: var(--gradient-primary); border: none; color: white; padding: 0.65rem 1.2rem;
-            border-radius: var(--radius-md); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;
-          ">
-            <span>➕</span> Añadir Himno
+          <button id="add-hymn-btn" class="btn btn-primary">
+            ${icons.plus(16)}
+            <span>Añadir Himno</span>
           </button>
         </div>
       </div>
@@ -134,45 +133,38 @@ function renderHymnCards(hymns, currentUser, typeFilter = 'all') {
       " class="hymn-card" data-hymn-id="${hymn.id}">
         <div>
           <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem;">
-            <h3 style="font-size: 1.1rem; color: var(--text-main); font-weight: 600;">${hymn.title_es}</h3>
-            <span style="
-              font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 20px; font-weight: 600;
-              background: ${hymn.type === 'public' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(139, 92, 246, 0.15)'};
-              color: ${hymn.type === 'public' ? 'var(--status-success)' : 'var(--accent)'};
-            ">
+            <h3 style="font-size: 1.05rem; color: var(--text-main); font-weight: 600;">${hymn.title_es}</h3>
+            <span class="${hymn.type === 'public' ? 'badge badge-success' : 'badge badge-gold'}">
               ${hymn.type === 'public' ? 'Público' : 'Privado'}
             </span>
           </div>
           ${hymn.title_original ? `<div style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">Original: ${hymn.title_original}</div>` : ''}
           <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.4rem;">Compositor: ${hymn.composer || 'Desconocido'}</div>
-          ${hymn.first_line ? `<div style="font-size: 0.8rem; color: var(--accent-cyan); margin-top: 0.4rem; font-style: italic;">🎶 1ª Estrofa: "${hymn.first_line}"</div>` : ''}
-          ${hymn.refrain_first_line ? `<div style="font-size: 0.8rem; color: var(--status-warning); margin-top: 0.2rem; font-style: italic;">✨ Coro: "${hymn.refrain_first_line}"</div>` : ''}
+          ${hymn.first_line ? `<div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.4rem; font-style: italic;">1ª Estrofa: "${hymn.first_line}"</div>` : ''}
+          ${hymn.refrain_first_line ? `<div style="font-size: 0.82rem; color: var(--accent-hover); margin-top: 0.2rem; font-style: italic;">Coro: "${hymn.refrain_first_line}"</div>` : ''}
           
           ${hymn.hymnal_hymn && hymn.hymnal_hymn.length > 0 ? `
-            <div style="font-size: 0.8rem; color: var(--accent-cyan); margin-top: 0.4rem;">
-              📖 Vinculado en: ${hymn.hymnal_hymn.map(hh => `${hh.hymnal ? hh.hymnal.name : 'Himnario'} (<strong style="color: white;">#${hh.number}</strong>)`).join(', ')}
+            <div style="font-size: 0.82rem; color: var(--primary); margin-top: 0.4rem; display: flex; align-items: center; gap: 0.35rem;">
+              ${icons.hymnals(14)}
+              <span>Vinculado en: ${hymn.hymnal_hymn.map(hh => `${hh.hymnal ? hh.hymnal.name : 'Himnario'} (<strong>#${hh.number}</strong>)`).join(', ')}</span>
             </div>
           ` : `
             <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.4rem; font-style: italic;">
-              🧩 Himno suelto (Sin himnario)
+              Himno suelto (Sin himnario)
             </div>
           `}
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
-          <button class="configure-music-btn" data-hymn-id="${hymn.id}" data-hymn-title="${hymn.title_es}" style="
-            background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main);
-            padding: 0.4rem 0.8rem; border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer;
-          ">
-            🎼 Tonalidad & Atributos
+          <button class="btn btn-outline btn-sm configure-music-btn" data-hymn-id="${hymn.id}" data-hymn-title="${hymn.title_es}">
+            ${icons.music(14)}
+            <span>Tonalidad & Atributos</span>
           </button>
 
           ${canDelete ? `
-            <button class="delete-hymn-btn" data-hymn-id="${hymn.id}" data-hymn-title="${hymn.title_es}" title="Eliminar Himno" style="
-              background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--status-danger);
-              padding: 0.4rem 0.8rem; border-radius: var(--radius-sm); font-size: 0.85rem; cursor: pointer; font-weight: 500;
-            ">
-              🗑️ Eliminar
+            <button class="btn btn-danger btn-sm delete-hymn-btn" data-hymn-id="${hymn.id}" data-hymn-title="${hymn.title_es}" title="Eliminar Himno">
+              ${icons.trash(14)}
+              <span>Eliminar</span>
             </button>
           ` : ''}
         </div>

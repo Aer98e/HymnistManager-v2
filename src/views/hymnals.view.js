@@ -3,43 +3,39 @@ import { hymnsService } from '../services/hymns.service.js';
 import { authService } from '../services/auth.service.js';
 import { createModal, showConfirmModal, showToast } from '../components/modal.js';
 import { openCustomHymnalBuilderModal } from '../components/custom_hymnal_builder.modal.js';
+import { icons } from '../utils/icons.js';
 
 export async function renderHymnalsView() {
   const hymnals = await hymnalsService.getHymnals();
   const currentUser = await authService.getCurrentUser();
 
   return `
-    <div style="padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <div style="padding: 2.5rem; max-width: 1200px; margin: 0 auto; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
         <div>
-          <h1 style="font-size: 1.8rem; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-            📖 Gestión de Himnarios
+          <h1 style="font-size: 2rem; font-style: italic; color: var(--text-main); margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.6rem;">
+            <span style="color: var(--primary); display: flex; align-items: center;">${icons.hymnals(28)}</span>
+            <span>Gestión de Himnarios</span>
           </h1>
-          <p style="color: var(--text-muted); font-size: 0.9rem;">
-            Crea o importa colecciones numeradas de himnos desde archivos CSV
+          <p class="subtitle">
+            Crea, organiza o importa colecciones numeradas de himnos con estructura sacra.
           </p>
         </div>
 
         <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-          <button id="fast-custom-builder-btn" style="
-            background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc;
-            padding: 0.65rem 1.1rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;
-          ">
-            <span>⚡</span> Constructor Rápido
+          <button id="fast-custom-builder-btn" class="btn btn-outline">
+            ${icons.music(16)}
+            <span>Constructor Rápido</span>
           </button>
 
-          <button id="import-csv-hymnal-btn" style="
-            background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main);
-            padding: 0.65rem 1rem; border-radius: var(--radius-md); font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;
-          ">
-            <span>📥</span> Importar desde CSV
+          <button id="import-csv-hymnal-btn" class="btn btn-secondary">
+            ${icons.hymnals(16)}
+            <span>Importar CSV</span>
           </button>
 
-          <button id="create-hymnal-btn" style="
-            background: var(--gradient-primary); border: none; color: white; padding: 0.65rem 1.2rem;
-            border-radius: var(--radius-md); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;
-          ">
-            <span>➕</span> Nuevo Himnario
+          <button id="create-hymnal-btn" class="btn btn-primary">
+            ${icons.plus(16)}
+            <span>Nuevo Himnario</span>
           </button>
         </div>
       </div>
@@ -60,73 +56,64 @@ export async function refreshHymnalsView() {
 }
 
 function renderHymnalCard(hymnal, currentUser) {
-  const statusColors = {
-    public: { label: 'Público', bg: 'rgba(16, 185, 129, 0.15)', color: 'var(--status-success)' },
-    pending: { label: 'En Revisión', bg: 'rgba(245, 158, 11, 0.15)', color: 'var(--status-warning)' },
-    rejected: { label: 'Rechazado', bg: 'rgba(239, 68, 68, 0.15)', color: 'var(--status-danger)' },
-    private: { label: 'Privado', bg: 'rgba(139, 92, 246, 0.15)', color: 'var(--accent)' }
+  const statusBadges = {
+    public: { label: 'Público', class: 'badge badge-success' },
+    pending: { label: 'En Revisión', class: 'badge badge-gold' },
+    rejected: { label: 'Rechazado', class: 'badge badge-danger' },
+    private: { label: 'Privado', class: 'badge badge-outline' }
   };
 
-  const status = statusColors[hymnal.type] || statusColors.private;
+  const status = statusBadges[hymnal.type] || statusBadges.private;
   const isOwner = currentUser && (hymnal.created_by === currentUser.id || currentUser.app_metadata?.role === 'admin');
 
   return `
-    <div style="
-      background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md);
-      padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;
-      position: relative;
-    ">
+    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; gap: 1rem; position: relative;">
       <div>
         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; position: relative;">
-          <h3 style="font-size: 1.1rem; color: var(--text-main); font-weight: 600; padding-right: 0.5rem;">${hymnal.name}</h3>
+          <h3 style="font-size: 1.05rem; color: var(--text-main); font-weight: 600; padding-right: 0.5rem;">${hymnal.name}</h3>
           
           <div style="display: flex; align-items: center; gap: 0.5rem; position: relative;">
-            <span style="font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 20px; font-weight: 600; background: ${status.bg}; color: ${status.color}; white-space: nowrap;">
-              ${status.label}
-            </span>
+            <span class="${status.class}">${status.label}</span>
 
             <div style="position: relative; display: flex; align-items: center;">
-              <button class="hymnal-options-btn" data-id="${hymnal.id}" data-name="${hymnal.name}" title="Opciones de Himnario" style="
-                background: rgba(255,255,255,0.08); border: 1px solid var(--border-color); color: var(--text-main); font-size: 1.3rem; cursor: pointer;
-                padding: 0.2rem 0.6rem; border-radius: var(--radius-md); transition: var(--transition-fast); line-height: 1;
-              ">
+              <button class="hymnal-options-btn btn btn-outline btn-sm" data-id="${hymnal.id}" data-name="${hymnal.name}" title="Opciones de Himnario" style="padding: 0.2rem 0.5rem;">
                 ⋮
               </button>
 
               <!-- Floating Dropdown Menu -->
               <div id="hymnal-bubbles-${hymnal.id}" class="hymnal-bubbles-container" style="
-                display: none; position: absolute; right: 0; top: calc(100% + 0.3rem); min-width: 190px;
+                display: none; position: absolute; right: 0; top: calc(100% + 0.3rem); min-width: 200px;
                 background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md);
-                box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 100; padding: 0.4rem; backdrop-filter: blur(12px);
+                box-shadow: var(--shadow-card); z-index: 100; padding: 0.4rem;
                 flex-direction: column; gap: 0.25rem;
               ">
-                <button class="open-builder-for-hymnal-btn" data-id="${hymnal.id}" title="Editor Consecutivo / Armador Rápido" style="
-                  width: 100%; text-align: left; background: transparent; border: none; color: #c084fc;
+                <button class="open-builder-for-hymnal-btn" data-id="${hymnal.id}" title="Editor Consecutivo" style="
+                  width: 100%; text-align: left; background: transparent; border: none; color: var(--primary);
                   padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 600;
-                " onmouseover="this.style.background='rgba(168,85,247,0.12)'" onmouseout="this.style.background='transparent'">
-                  <span>⚡</span> Editor Consecutivo
+                " onmouseover="this.style.background='var(--badge-bg)'" onmouseout="this.style.background='transparent'">
+                  ${icons.music(14)} Editor Consecutivo
                 </button>
 
                 <button class="duplicate-hymnal-btn" data-id="${hymnal.id}" data-name="${hymnal.name}" title="Duplicar como copia privada" style="
                   width: 100%; text-align: left; background: transparent; border: none; color: var(--text-main);
                   padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;
-                " onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='transparent'">
-                  <span>📋</span> Duplicar Himnario
+                " onmouseover="this.style.background='var(--bg-surface-hover)'" onmouseout="this.style.background='transparent'">
+                  ${icons.hymnals(14)} Duplicar Himnario
                 </button>
 
                 <button class="smart-linker-btn" data-id="${hymnal.id}" title="Asistente de Enlace Inteligente" style="
                   width: 100%; text-align: left; background: transparent; border: none; color: var(--text-main);
                   padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;
-                " onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='transparent'">
-                  <span>🔗</span> Enlace Inteligente
+                " onmouseover="this.style.background='var(--bg-surface-hover)'" onmouseout="this.style.background='transparent'">
+                  ${icons.contexts(14)} Enlace Inteligente
                 </button>
 
                 ${hymnal.type === 'private' || hymnal.type === 'rejected' ? `
                   <button class="submit-hymnal-btn" data-id="${hymnal.id}" style="
                     width: 100%; text-align: left; background: transparent; border: none; color: var(--primary);
                     padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 600;
-                  " onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='transparent'">
-                    <span>🚀</span> Enviar a Revisión
+                  " onmouseover="this.style.background='var(--badge-bg)'" onmouseout="this.style.background='transparent'">
+                    ${icons.check(14)} Enviar a Revisión
                   </button>
                 ` : ''}
 
@@ -135,15 +122,15 @@ function renderHymnalCard(hymnal, currentUser) {
                   <button class="hymnal-edit-bubble-btn" data-id="${hymnal.id}" data-name="${hymnal.name}" title="Editar Nombre" style="
                     width: 100%; text-align: left; background: transparent; border: none; color: var(--status-success);
                     padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;
-                  " onmouseover="this.style.background='rgba(16,185,129,0.12)'" onmouseout="this.style.background='transparent'">
-                    <span>✏️</span> Editar Nombre
+                  " onmouseover="this.style.background='rgba(21, 128, 61, 0.08)'" onmouseout="this.style.background='transparent'">
+                    ${icons.edit(14)} Editar Nombre
                   </button>
 
                   <button class="hymnal-delete-bubble-btn" data-id="${hymnal.id}" data-name="${hymnal.name}" title="Eliminar Himnario" style="
                     width: 100%; text-align: left; background: transparent; border: none; color: var(--status-danger);
                     padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;
-                  " onmouseover="this.style.background='rgba(239,68,68,0.12)'" onmouseout="this.style.background='transparent'">
-                    <span>🗑️</span> Eliminar Himnario
+                  " onmouseover="this.style.background='rgba(220, 38, 38, 0.08)'" onmouseout="this.style.background='transparent'">
+                    ${icons.trash(14)} Eliminar Himnario
                   </button>
                 ` : ''}
               </div>
@@ -155,19 +142,16 @@ function renderHymnalCard(hymnal, currentUser) {
           Idioma: ${hymnal.language ? hymnal.language.name : 'Español'}
         </div>
         ${hymnal.rejection_reason ? `
-          <div style="margin-top: 0.5rem; font-size: 0.8rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--status-danger); padding: 0.5rem; border-radius: var(--radius-sm);">
+          <div style="margin-top: 0.5rem; font-size: 0.8rem; background: #FEE2E2; border: 1px solid #FCA5A5; color: #DC2626; padding: 0.5rem; border-radius: var(--radius-sm);">
             <strong>Razón de rechazo:</strong> ${hymnal.rejection_reason}
           </div>
         ` : ''}
       </div>
 
       <div style="border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
-        <button class="view-hymnal-details-btn" data-id="${hymnal.id}" style="
-          width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main);
-          padding: 0.5rem; border-radius: var(--radius-sm); font-size: 0.88rem; cursor: pointer; font-weight: 500;
-          display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: background 0.15s ease;
-        " onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
-          👁️ Ver Himnos
+        <button class="btn btn-outline btn-sm view-hymnal-details-btn" data-id="${hymnal.id}" style="width: 100%;">
+          ${icons.hymns(14)}
+          <span>Ver Himnos</span>
         </button>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { authService } from '../services/auth.service.js';
+import { icons } from '../utils/icons.js';
 
 export function renderAuthView(isSignUp = false) {
   return `
@@ -8,24 +9,24 @@ export function renderAuthView(isSignUp = false) {
       align-items: center;
       justify-content: center;
       padding: 1.5rem;
-      background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.15), transparent 40%),
-                  radial-gradient(circle at bottom left, rgba(139, 92, 246, 0.15), transparent 40%);
+      background: radial-gradient(circle at top right, rgba(214, 175, 55, 0.08), transparent 50%),
+                  radial-gradient(circle at bottom left, rgba(139, 30, 47, 0.12), transparent 50%);
     ">
-      <div style="
-        background: var(--bg-surface);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-lg);
-        padding: 2.5rem;
+      <div class="card" style="
+        padding: 2.75rem 2.5rem;
         width: 100%;
-        max-width: 420px;
+        max-width: 430px;
         box-shadow: var(--shadow-card);
+        border: 1px solid var(--border-color);
       ">
         <div style="text-align: center; margin-bottom: 2rem;">
-          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎶</div>
-          <h2 style="font-size: 1.75rem; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+          <div style="color: var(--primary); display: flex; justify-content: center; margin-bottom: 0.75rem;">
+            ${icons.music(40)}
+          </div>
+          <h2 style="font-family: var(--font-heading); font-style: italic; font-size: 1.85rem; color: var(--text-main);">
             ${isSignUp ? 'Crear Cuenta' : 'Iniciar Sesión'}
           </h2>
-          <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">
+          <p class="subtitle" style="margin-top: 0.35rem;">
             Hymn List Manager
           </p>
         </div>
