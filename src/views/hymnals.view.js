@@ -539,6 +539,7 @@ export async function openSmartLinkerModal(hymnalId) {
 
   // Filter out songs that are already public OR have 0 candidates!
   const queue = suggestions.filter(s => !s.isAlreadyPublic && s.candidates && s.candidates.length > 0);
+  const initialTotal = queue.length;
 
   if (queue.length === 0) {
     createModal(`Asistente de Enlace: ${hymnal.name}`, `
@@ -559,8 +560,9 @@ export async function openSmartLinkerModal(hymnalId) {
 
   function renderCarouselCard() {
     const item = queue[currentIndex];
-    const total = queue.length;
-    const progressPercent = Math.round(((currentIndex + 1) / total) * 100);
+    const processedCount = initialTotal - queue.length;
+    const currentCaseNum = Math.min(processedCount + currentIndex + 1, initialTotal);
+    const progressPercent = Math.round((processedCount / initialTotal) * 100);
 
     const container = document.getElementById('smart-linker-carousel-container');
     if (!container) return;
@@ -570,10 +572,10 @@ export async function openSmartLinkerModal(hymnalId) {
         <!-- Header & Progress -->
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span class="badge badge-gold">
-            Caso ${currentIndex + 1} de ${total}
+            Caso ${currentCaseNum} de ${initialTotal}
           </span>
           <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">
-            Progreso: ${progressPercent}%
+            Progreso: ${progressPercent}% (${processedCount}/${initialTotal})
           </span>
         </div>
 
@@ -603,7 +605,7 @@ export async function openSmartLinkerModal(hymnalId) {
                 &lt;
               </button>
 
-              <button id="carousel-next-btn" class="btn btn-outline btn-sm" ${currentIndex === total - 1 ? 'disabled style="opacity: 0.4; cursor: not-allowed;"' : ''}>
+              <button id="carousel-next-btn" class="btn btn-outline btn-sm" ${currentIndex === queue.length - 1 ? 'disabled style="opacity: 0.4; cursor: not-allowed;"' : ''}>
                 &gt;
               </button>
             </div>
@@ -699,7 +701,7 @@ export async function openSmartLinkerModal(hymnalId) {
 
     if (nextBtn) {
       nextBtn.addEventListener('click', () => {
-        if (currentIndex < total - 1) {
+        if (currentIndex < queue.length - 1) {
           currentIndex++;
           renderCarouselCard();
         }
