@@ -6,6 +6,14 @@ import { normalizeText } from '../utils/text.utils.js';
 import { generateUserHymnCSVTemplate, parseAndValidateUserHymnCSV } from '../utils/user_hymn_csv.utils.js';
 import { icons } from '../utils/icons.js';
 
+export async function refreshHymnsView() {
+  const container = document.getElementById('main-content') || document.querySelector('main');
+  if (container) {
+    container.innerHTML = await renderHymnsView();
+    setupHymnsEvents();
+  }
+}
+
 export async function renderHymnsView() {
   const hymns = await hymnsService.getHymns();
   const categories = await hymnsService.getCategories();
@@ -79,7 +87,7 @@ export async function renderHymnsView() {
       </div>
 
       <!-- Filters Bar -->
-      <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+      <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center;">
         <input type="text" id="hymn-search-input" placeholder="🔍 Buscar por título, compositor, primera línea (omite tildes y comas)..." style="
           flex: 1; min-width: 250px; padding: 0.75rem 1rem; background: var(--bg-surface); border: 1px solid var(--border-color);
           border-radius: var(--radius-md); color: var(--text-main); font-size: 0.95rem; outline: none;
@@ -101,11 +109,20 @@ export async function renderHymnsView() {
           <option value="">Todas las categorías</option>
           ${categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('')}
         </select>
+
+        <button id="manage-categories-btn" class="btn btn-secondary" title="Gestionar categorías personalizadas">
+          ${icons.filter(16)}
+          <span>Categorías</span>
+        </button>
       </div>
 
       <!-- Hymns Grid -->
       <div id="hymns-list-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem;">
-        ${renderHymnCards(hymns, currentUser, 'all')}
+        ${renderHymnCards(hymns.slice(0, 100), currentUser, 'all')}
+      </div>
+
+      <!-- Pagination Container -->
+      <div id="hymns-pagination-container" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; flex-wrap: wrap; gap: 1rem;">
       </div>
     </div>
   `;
@@ -123,6 +140,7 @@ function renderHymnCards(hymns, currentUser, typeFilter = 'all') {
 
   return hymns.map(hymn => {
     const isOwner = currentUser && (hymn.created_by === currentUser.id);
+    const canEdit = (isOwner && hymn.type === 'private') || isAdmin;
     const canDelete = (isOwner && hymn.type === 'private') || isAdmin;
 
     return `
@@ -161,12 +179,21 @@ function renderHymnCards(hymns, currentUser, typeFilter = 'all') {
             <span>Tonalidad & Atributos</span>
           </button>
 
-          ${canDelete ? `
-            <button class="btn btn-danger btn-sm delete-hymn-btn" data-hymn-id="${hymn.id}" data-hymn-title="${hymn.title_es}" title="Eliminar Himno">
-              ${icons.trash(14)}
-              <span>Eliminar</span>
-            </button>
-          ` : ''}
+          <div style="display: flex; gap: 0.35rem; align-items: center;">
+            ${canEdit ? `
+              <button class="btn btn-secondary btn-sm edit-hymn-meta-btn" data-hymn-id="${hymn.id}" title="Editar Metadatos del Himno">
+                ${icons.edit(14)}
+                <span>Editar</span>
+              </button>
+            ` : ''}
+
+            ${canDelete ? `
+              <button class="btn btn-danger btn-sm delete-hymn-btn" data-hymn-id="${hymn.id}" data-hymn-title="${hymn.title_es}" title="Eliminar Himno">
+                ${icons.trash(14)}
+                <span>Eliminar</span>
+              </button>
+            ` : ''}
+          </div>
         </div>
       </div>
     `;
@@ -179,17 +206,79 @@ export function setupHymnsEvents() {
   const categoryFilter = document.getElementById('hymn-category-filter');
   const container = document.getElementById('hymns-list-container');
   const addBtn = document.getElementById('add-hymn-btn');
+  const manageCategoriesBtn = document.getElementById('manage-categories-btn');
+
+  let currentPage = 1;
+  const pageSize = 100;
+  let allFilteredHymns = [];
+  let currentSelectedType = 'all';
+
+  const renderPaginatedResults = async () => {
+    const currentUser = await authService.getCurrentUser();
+    const paginationContainer = document.getElementById('hymns-pagination-container');
+    const totalItems = allFilteredHymns.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const pageHymns = allFilteredHymns.slice(startIndex, startIndex + pageSize);
+
+    if (container) container.innerHTML = renderHymnCards(pageHymns, currentUser, currentSelectedType);
+
+    if (paginationContainer) {
+      if (totalItems <= pageSize) {
+        paginationContainer.innerHTML = `<span style="font-size: 0.85rem; color: var(--text-muted);">Mostrando ${totalItems} himno(s)</span>`;
+      } else {
+        paginationContainer.innerHTML = `
+          <div style="font-size: 0.85rem; color: var(--text-muted);">
+            Mostrando ${startIndex + 1} - ${Math.min(startIndex + pageSize, totalItems)} de <strong>${totalItems}</strong> himnos
+          </div>
+          <div style="display: flex; gap: 0.4rem; align-items: center;">
+            <button id="page-prev-btn" class="btn btn-outline btn-sm" ${currentPage === 1 ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''}>
+              ⏮️ Anterior
+            </button>
+            <span style="font-size: 0.85rem; color: var(--text-main); font-weight: 600; padding: 0 0.5rem;">
+              Página ${currentPage} de ${totalPages}
+            </span>
+            <button id="page-next-btn" class="btn btn-outline btn-sm" ${currentPage === totalPages ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''}>
+              Siguiente ⏭️
+            </button>
+          </div>
+        `;
+
+        document.getElementById('page-prev-btn')?.addEventListener('click', () => {
+          if (currentPage > 1) {
+            currentPage--;
+            renderPaginatedResults();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        });
+
+        document.getElementById('page-next-btn')?.addEventListener('click', () => {
+          if (currentPage < totalPages) {
+            currentPage++;
+            renderPaginatedResults();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        });
+      }
+    }
+
+    attachCardEvents(filterHandler, allFilteredHymns);
+  };
 
   const filterHandler = async () => {
     const rawQuery = searchInput ? searchInput.value : '';
     const normalizedQuery = normalizeText(rawQuery);
-    const selectedType = typeFilter ? typeFilter.value : 'all';
+    currentSelectedType = typeFilter ? typeFilter.value : 'all';
     const catId = categoryFilter ? categoryFilter.value : null;
 
     let hymns = [];
-    if (selectedType === 'user_loose') {
+    if (currentSelectedType === 'user_loose') {
       hymns = await hymnalsService.getUserLooseHymns();
-    } else if (selectedType === 'public_loose') {
+    } else if (currentSelectedType === 'public_loose') {
       hymns = await hymnalsService.getPublicLooseHymns();
     } else {
       hymns = await hymnsService.getHymns('', catId);
@@ -212,14 +301,105 @@ export function setupHymnsEvents() {
       });
     }
 
-    const currentUser = await authService.getCurrentUser();
-    if (container) container.innerHTML = renderHymnCards(hymns, currentUser, selectedType);
-    attachCardEvents(filterHandler);
+    allFilteredHymns = hymns;
+    currentPage = 1;
+    await renderPaginatedResults();
   };
 
   if (searchInput) searchInput.addEventListener('input', filterHandler);
   if (typeFilter) typeFilter.addEventListener('change', filterHandler);
   if (categoryFilter) categoryFilter.addEventListener('change', filterHandler);
+
+  if (manageCategoriesBtn) {
+    manageCategoriesBtn.addEventListener('click', async () => {
+      const openCategoriesModal = async () => {
+        const currentCategories = await hymnsService.getCategories();
+
+        createModal('Gestionar Categorías Personalizadas', `
+          <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <!-- Nueva categoría -->
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <input type="text" id="new-cat-name-input" placeholder="Nombre de nueva categoría (ej. Adoración)..." style="flex: 1; padding: 0.55rem 0.75rem;" />
+              <button type="button" id="create-cat-btn" class="btn btn-primary btn-sm">➕ Crear</button>
+            </div>
+
+            <div style="height: 1px; background: var(--border-color); margin: 0.2rem 0;"></div>
+
+            <!-- Lista de Categorías -->
+            <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted);">Categorías Registradas (${currentCategories.length}):</div>
+            <div style="display: flex; flex-direction: column; gap: 0.4rem; max-height: 250px; overflow-y: auto;">
+              ${currentCategories.length === 0 ? '<div style="color: var(--text-muted); font-size: 0.85rem;">No hay categorías registradas.</div>' : currentCategories.map(cat => `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-dark); border: 1px solid var(--border-color); padding: 0.5rem 0.75rem; border-radius: var(--radius-sm);">
+                  <span style="font-weight: 500; font-size: 0.9rem; color: var(--text-main);">${cat.name}</span>
+                  <div style="display: flex; gap: 0.35rem;">
+                    <button class="btn btn-outline btn-sm edit-cat-btn" data-cat-id="${cat.id}" data-cat-name="${cat.name}" title="Renombrar">
+                      ${icons.edit(13)}
+                    </button>
+                    <button class="btn btn-danger btn-sm delete-cat-btn" data-cat-id="${cat.id}" data-cat-name="${cat.name}" title="Eliminar">
+                      ${icons.trash(13)}
+                    </button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `, null);
+
+        setTimeout(() => {
+          document.getElementById('create-cat-btn')?.addEventListener('click', async () => {
+            const name = document.getElementById('new-cat-name-input')?.value.trim();
+            if (!name) return showToast('Ingresa un nombre para la categoría', 'warning');
+            await hymnsService.createCategory(name);
+            showToast(`Categoría "${name}" creada con éxito.`, 'success');
+            document.getElementById('modal-close-btn')?.click();
+            await refreshHymnsView();
+          });
+
+          document.querySelectorAll('.edit-cat-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              const catId = e.currentTarget.getAttribute('data-cat-id');
+              const catName = e.currentTarget.getAttribute('data-cat-name');
+              createModal(`Renombrar Categoría`, `
+                <form style="display: flex; flex-direction: column; gap: 1rem;">
+                  <div>
+                    <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Nuevo Nombre *</label>
+                    <input type="text" id="rename-cat-input" value="${catName}" required style="width: 100%;" />
+                  </div>
+                </form>
+              `, async () => {
+                const newName = document.getElementById('rename-cat-input')?.value.trim();
+                if (newName && newName !== catName) {
+                  await hymnsService.updateCategory(catId, newName);
+                  showToast('Categoría actualizada.', 'success');
+                  await refreshHymnsView();
+                }
+              });
+            });
+          });
+
+          document.querySelectorAll('.delete-cat-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              const catId = e.currentTarget.getAttribute('data-cat-id');
+              const catName = e.currentTarget.getAttribute('data-cat-name');
+              showConfirmModal({
+                title: '¿Eliminar Categoría?',
+                message: `¿Estás seguro de que deseas eliminar la categoría "${catName}"?`,
+                confirmText: '🗑️ Sí, Eliminar',
+                danger: true,
+                onConfirm: async () => {
+                  await hymnsService.deleteCategory(catId);
+                  showToast(`Categoría "${catName}" eliminada.`, 'success');
+                  await refreshHymnsView();
+                }
+              });
+            });
+          });
+        }, 100);
+      };
+
+      await openCategoriesModal();
+    });
+  }
 
   // Dropdown de herramientas de tonalidad
   const tonalitiesToggle = document.getElementById('tonalities-dropdown-toggle');
@@ -694,6 +874,59 @@ function attachCardEvents(refreshCallback) {
       } catch (err) {
         showToast(`Error al consultar programas: ${err.message}`, 'error');
       }
+    });
+  });
+
+  // Edit hymn metadata handler
+  document.querySelectorAll('.edit-hymn-meta-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const hymnId = e.currentTarget.getAttribute('data-hymn-id');
+      const hymn = (refreshCallback && (await hymnsService.getHymns())).find(h => h.id === hymnId);
+      if (!hymn) return;
+
+      createModal(`Editar Metadatos: ${hymn.title_es}`, `
+        <form style="display: flex; flex-direction: column; gap: 1rem;">
+          <div>
+            <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Título en Español *</label>
+            <input type="text" id="edit-title-es" value="${hymn.title_es || ''}" required style="width: 100%;" />
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Primera Línea (1ª Estrofa)</label>
+            <input type="text" id="edit-first-line" value="${hymn.first_line || ''}" placeholder="ej. Sublime gracia del Señor..." style="width: 100%;" />
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Primera Línea del Coro / Estribillo</label>
+            <input type="text" id="edit-refrain-line" value="${hymn.refrain_first_line || ''}" placeholder="ej. En la cruz, en la cruz..." style="width: 100%;" />
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Título Original</label>
+            <input type="text" id="edit-title-orig" value="${hymn.title_original || ''}" style="width: 100%;" />
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Compositor</label>
+            <input type="text" id="edit-composer" value="${hymn.composer || ''}" style="width: 100%;" />
+          </div>
+        </form>
+      `, async () => {
+        const titleEs = document.getElementById('edit-title-es').value;
+        const firstLine = document.getElementById('edit-first-line').value;
+        const refrainLine = document.getElementById('edit-refrain-line').value;
+        const titleOrig = document.getElementById('edit-title-orig').value;
+        const composer = document.getElementById('edit-composer').value;
+
+        if (!titleEs) throw new Error('El título en español es obligatorio');
+
+        await hymnsService.updateHymn(hymnId, {
+          title_es: titleEs,
+          first_line: firstLine || null,
+          refrain_first_line: refrainLine || null,
+          title_original: titleOrig || null,
+          composer: composer || null
+        });
+
+        showToast(`Metadatos de "${titleEs}" actualizados con éxito.`, 'success');
+        if (refreshCallback) refreshCallback();
+      });
     });
   });
 }

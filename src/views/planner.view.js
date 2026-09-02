@@ -11,6 +11,19 @@ export async function renderPlannerView() {
   const prefs = await authService.getUserPreferences();
   const preferredHymnalName = prefs.preferred_hymnal ? prefs.preferred_hymnal.name : 'Ninguno (Seleccionar)';
 
+  // Build usage stats map per context
+  const usageStatsByContext = new Map();
+  for (const p of programs) {
+    if (p.context_id && !usageStatsByContext.has(p.context_id)) {
+      try {
+        const stats = await programsService.getContextRecentUsageStats(p.context_id);
+        usageStatsByContext.set(p.context_id, stats);
+      } catch (e) {
+        console.error('Error fetching usage stats for context:', e);
+      }
+    }
+  }
+
   return `
     <div style="padding: 2.5rem; max-width: 1200px; margin: 0 auto; width: 100%;">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
@@ -47,7 +60,7 @@ export async function renderPlannerView() {
           <div style="text-align: center; color: var(--text-muted); padding: 3rem; background: var(--bg-surface); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
             No hay programas creados aún. ¡Crea uno o usa el Asistente Inteligente para comenzar!
           </div>
-        ` : programs.map(p => renderProgramCard(p, prefs.preferred_hymnal_id)).join('')}
+        ` : programs.map(p => renderProgramCard(p, prefs.preferred_hymnal_id, usageStatsByContext.get(p.context_id))).join('')}
       </div>
     </div>
   `;
@@ -61,9 +74,25 @@ export async function refreshPlannerView() {
   }
 }
 
-function renderProgramCard(program, preferredHymnalId) {
+function renderProgramCard(program, preferredHymnalId, contextUsageMap) {
   const formattedDate = new Date(program.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const hymnList = program.program_hymn || [];
+
+  // Check recent repetition warnings
+  const recentWarnings = [];
+  if (contextUsageMap && hymnList.length > 0) {
+    hymnList.forEach(ph => {
+      const hId = ph.hymn?.id || ph.hymn_id;
+      const stat = contextUsageMap.get(hId);
+      if (stat && stat.usedRecently) {
+        recentWarnings.push({
+          title: ph.hymn?.title_es || 'Himno',
+          daysAgo: stat.daysAgo,
+          lastDate: stat.lastDate
+        });
+      }
+    });
+  }
 
   return `
     <div class="card">
@@ -137,6 +166,20 @@ function renderProgramCard(program, preferredHymnalId) {
             `;
           }).join('') : `<p style="color: var(--text-muted); font-size: 0.85rem; font-style: italic;">Sin himnos agregados a este programa.</p>`}
         </div>
+
+        <!-- Persistent Warning Box for Recent Repetitions -->
+        ${recentWarnings.length > 0 ? `
+          <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-top: 1rem;">
+            <div style="font-weight: 600; color: var(--status-warning); font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem;">
+              ⚠️ Advertencia: Himnos cantados recientemente en este Contexto (menos de 28 días):
+            </div>
+            <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.82rem; color: var(--text-main); display: flex; flex-direction: column; gap: 0.2rem;">
+              ${recentWarnings.map(w => `
+                <li><strong>${w.title}</strong> — Cantado hace ${w.daysAgo} días (${w.lastDate})</li>
+              `).join('')}
+            </ul>
+          </div>
+        ` : ''}
       </div>
     </div>
   `;
@@ -270,6 +313,26 @@ export function setupPlannerEvents() {
         return;
       }
 
+      let currentUsageMap = await programsService.getContextRecentUsageStats(contexts[0].id);
+
+      const renderHymnCheckboxes = (usageMap) => {
+        return hymns.map(h => {
+          const stat = usageMap.get(h.id);
+          const isRecent = stat && stat.usedRecently;
+          const badgeText = isRecent ? `<span class="badge badge-gold" style="font-size: 0.72rem; margin-left: 0.4rem;">⚠️ Cantado hace ${stat.daysAgo} días</span>` : '';
+
+          return `
+            <label style="display: flex; align-items: center; justify-content: space-between; padding: 0.35rem 0.5rem; cursor: pointer; color: var(--text-main); font-size: 0.88rem; border-bottom: 1px solid rgba(255,255,255,0.03);">
+              <span style="display: flex; align-items: center; gap: 0.5rem; flex: 1;">
+                <input type="checkbox" class="hymn-select-chk" value="${h.id}" />
+                <span>🎵 <strong>${h.title_es}</strong> ${h.composer ? `(${h.composer})` : ''}</span>
+              </span>
+              ${badgeText}
+            </label>
+          `;
+        }).join('');
+      };
+
       createModal('Crear Programa Musical (Armado por Nombre)', `
         <form id="program-form" style="display: flex; flex-direction: column; gap: 1rem;">
           <div>
@@ -291,13 +354,8 @@ export function setupPlannerEvents() {
 
           <div>
             <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Seleccionar Himnos por Nombre</label>
-            <div style="max-height: 180px; overflow-y: auto; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.5rem;">
-              ${hymns.map(h => `
-                <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0; cursor: pointer; color: var(--text-main); font-size: 0.9rem;">
-                  <input type="checkbox" class="hymn-select-chk" value="${h.id}" />
-                  <span>🎵 <strong>${h.title_es}</strong> ${h.composer ? `(${h.composer})` : ''}</span>
-                </label>
-              `).join('')}
+            <div id="prog-hymns-checkboxes-container" style="max-height: 200px; overflow-y: auto; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.5rem;">
+              ${renderHymnCheckboxes(currentUsageMap)}
             </div>
           </div>
         </form>
@@ -311,6 +369,18 @@ export function setupPlannerEvents() {
         showToast('Programa musical creado exitosamente.', 'success');
         await refreshPlannerView();
       });
+
+      setTimeout(() => {
+        const ctxSelect = document.getElementById('prog-context');
+        const listContainer = document.getElementById('prog-hymns-checkboxes-container');
+        if (ctxSelect && listContainer) {
+          ctxSelect.addEventListener('change', async (e) => {
+            const ctxId = e.target.value;
+            currentUsageMap = await programsService.getContextRecentUsageStats(ctxId);
+            listContainer.innerHTML = renderHymnCheckboxes(currentUsageMap);
+          });
+        }
+      }, 100);
     });
   }
 

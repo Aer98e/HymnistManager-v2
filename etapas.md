@@ -72,3 +72,8 @@ Arquitectura: **Vite + Vanilla JS + Supabase (PostgreSQL / RLS / Views) + GitHub
 - Optimización de assets y variables de entorno Vite.
 - Despliegue en GitHub Pages.
 - Pruebas finales de RLS y UX.
+
+---
+
+## 📌 PENDIENTES / BACKLOG FUTURO
+- **Sistema de Sugerencias de Usuarios para Himnos Públicos:** Mecanismo/tabla de sugerencias para que usuarios regulares puedan reportar correcciones o mejoras en metadatos de himnos públicos a los administradores para su aprobación.

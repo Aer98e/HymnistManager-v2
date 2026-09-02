@@ -165,6 +165,33 @@ export const programsService = {
     };
   },
 
+  async getContextRecentUsageStats(contextId) {
+    const { data, error } = await supabase
+      .from('v_hymn_usage_stats')
+      .select('*')
+      .eq('context_id', contextId);
+
+    if (error) throw error;
+
+    const statsMap = new Map();
+    const today = new Date();
+
+    (data || []).forEach(row => {
+      if (row.last_used_at) {
+        const lastDate = new Date(row.last_used_at);
+        const diffMs = today - lastDate;
+        const daysAgo = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        statsMap.set(row.hymn_id, {
+          usedRecently: daysAgo <= 28,
+          daysAgo,
+          lastDate: row.last_used_at
+        });
+      }
+    });
+
+    return statsMap;
+  },
+
   async updateProgramHymnOrder(programId, orderedHymnIds = []) {
     // Delete existing
     const { error: delErr } = await supabase

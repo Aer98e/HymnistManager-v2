@@ -52,6 +52,27 @@ export const hymnsService = {
     return data;
   },
 
+  async updateHymn(hymnId, hymnData) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuario no autenticado');
+
+    const { data, error } = await supabase
+      .from('hymns')
+      .update({
+        title_es: hymnData.title_es,
+        title_original: hymnData.title_original || null,
+        composer: hymnData.composer || null,
+        first_line: hymnData.first_line || null,
+        refrain_first_line: hymnData.refrain_first_line || null
+      })
+      .eq('id', hymnId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
   async getUserHymnAttributes(hymnId) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
@@ -123,6 +144,28 @@ export const hymnsService = {
 
     if (error) throw error;
     return data;
+  },
+
+  async updateCategory(catId, newName) {
+    const { data, error } = await supabase
+      .from('categories')
+      .update({ name: newName })
+      .eq('id', catId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteCategory(catId) {
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', catId);
+
+    if (error) throw error;
+    return true;
   },
 
   async getHymnProgramUsage(hymnId) {

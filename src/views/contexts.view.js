@@ -146,7 +146,7 @@ export async function setupContextsEvents() {
         </form>
       `, async () => {
         const val = document.getElementById('threshold-val').value;
-        await authService.updateUserPreferences(parseInt(val, 10));
+        await authService.updateUserPreferences({ new_hymn_threshold: parseInt(val, 10) });
         showToast('Umbral de himnos nuevos actualizado.', 'success');
         await refreshContextsView();
       });

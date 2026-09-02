@@ -64,6 +64,10 @@ class AppRouter {
         eventSetup = setupPlannerEvents;
         break;
       case '/admin':
+        if (!currentUser || currentUser.app_metadata?.role !== 'admin') {
+          window.location.hash = '#/dashboard';
+          return;
+        }
         contentHtml = await renderAdminView();
         eventSetup = setupAdminEvents;
         break;
