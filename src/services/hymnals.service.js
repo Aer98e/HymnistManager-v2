@@ -467,11 +467,17 @@ export const hymnalsService = {
     return { hymnal, importedCount: hymnalHymnInserts.length };
   },
 
-
   async getHymnalLinkSuggestions(hymnalId) {
     // 1. Fetch hymnal details
     const hymnal = await this.getHymnalDetails(hymnalId);
     if (!hymnal || !hymnal.hymnal_hymn) return { hymnal, suggestions: [] };
+
+    // Set of hymn IDs currently linked to this hymnal
+    const currentHymnIdsInHymnal = new Set(
+      hymnal.hymnal_hymn
+        .map(item => item.hymn?.id || item.hymn_id)
+        .filter(Boolean)
+    );
 
     // 2. Fetch all candidate hymns in catalog (both public and user private hymns) with linked hymnal info
     const { data: targetHymns, error } = await supabase
@@ -480,13 +486,12 @@ export const hymnalsService = {
         *,
         hymnal_hymn(
           number,
+          hymnal_id,
           hymnal:hymnals(id, name)
         )
-
       `);
 
     if (error) throw error;
-
 
     const suggestions = [];
 
@@ -496,13 +501,26 @@ export const hymnalsService = {
 
       const isAlreadyPublic = localHymn.type === 'public';
 
-      // Compare local song against all other catalog songs
+      // Compare local song against all other catalog songs, excluding hymns already in this hymnal
       const candidates = (targetHymns || [])
         .map(targetHymn => {
           const score = computeHymnMatchScore(localHymn, targetHymn);
           return { publicHymn: targetHymn, score };
         })
-        .filter(c => c.score >= 35 && c.publicHymn.id !== localHymn.id)
+        .filter(c => {
+          if (c.score < 35) return false;
+          if (c.publicHymn.id === localHymn.id) return false;
+
+          // Filter out candidates that are already present in the current hymnal
+          if (currentHymnIdsInHymnal.has(c.publicHymn.id)) return false;
+
+          const belongsToCurrentHymnal = c.publicHymn.hymnal_hymn?.some(
+            hh => (hh.hymnal_id && hh.hymnal_id === hymnalId) || (hh.hymnal?.id && hh.hymnal.id === hymnalId)
+          );
+          if (belongsToCurrentHymnal) return false;
+
+          return true;
+        })
         .sort((a, b) => b.score - a.score)
         .slice(0, 4); // top candidate suggestions
 
@@ -516,7 +534,6 @@ export const hymnalsService = {
 
     return { hymnal, suggestions };
   },
-
 
   async relinkHymnalHymn(hymnalId, oldHymnId, newPublicHymnId) {
     const { data: { user } } = await supabase.auth.getUser();
