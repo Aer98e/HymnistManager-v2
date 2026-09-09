@@ -8,6 +8,7 @@ export const programsService = {
         *,
         context:contexts(id, name),
         program_hymn (
+          hymn_id,
           order_index,
           hymn:hymns(
             *,
@@ -29,6 +30,15 @@ export const programsService = {
 
     const { data, error } = await query;
     if (error) throw error;
+
+    if (data) {
+      data.forEach(p => {
+        if (p.program_hymn) {
+          p.program_hymn.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+        }
+      });
+    }
+
     return data;
   },
 
@@ -213,6 +223,28 @@ export const programsService = {
         .insert(items);
 
       if (insErr) throw insErr;
+    }
+
+    return true;
+  },
+
+  async updateProgram(programId, { name, date, contextId, hymnIds }) {
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (date !== undefined) updateData.date = date;
+    if (contextId !== undefined) updateData.context_id = contextId;
+
+    if (Object.keys(updateData).length > 0) {
+      const { error: progErr } = await supabase
+        .from('programs')
+        .update(updateData)
+        .eq('id', programId);
+
+      if (progErr) throw progErr;
+    }
+
+    if (hymnIds !== undefined) {
+      await this.updateProgramHymnOrder(programId, hymnIds);
     }
 
     return true;

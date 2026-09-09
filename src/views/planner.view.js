@@ -5,24 +5,12 @@ import { hymnalsService } from '../services/hymnals.service.js';
 import { authService } from '../services/auth.service.js';
 import { createModal, showToast } from '../components/modal.js';
 import { icons } from '../utils/icons.js';
+import { normalizeText } from '../utils/text.utils.js';
 
 export async function renderPlannerView() {
   const programs = await programsService.getPrograms();
   const prefs = await authService.getUserPreferences();
   const preferredHymnalName = prefs.preferred_hymnal ? prefs.preferred_hymnal.name : 'Ninguno (Seleccionar)';
-
-  // Build usage stats map per context
-  const usageStatsByContext = new Map();
-  for (const p of programs) {
-    if (p.context_id && !usageStatsByContext.has(p.context_id)) {
-      try {
-        const stats = await programsService.getContextRecentUsageStats(p.context_id);
-        usageStatsByContext.set(p.context_id, stats);
-      } catch (e) {
-        console.error('Error fetching usage stats for context:', e);
-      }
-    }
-  }
 
   return `
     <div style="padding: 2.5rem; max-width: 1200px; margin: 0 auto; width: 100%;">
@@ -60,7 +48,7 @@ export async function renderPlannerView() {
           <div style="text-align: center; color: var(--text-muted); padding: 3rem; background: var(--bg-surface); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
             No hay programas creados aún. ¡Crea uno o usa el Asistente Inteligente para comenzar!
           </div>
-        ` : programs.map(p => renderProgramCard(p, prefs.preferred_hymnal_id, usageStatsByContext.get(p.context_id))).join('')}
+        ` : programs.map(p => renderProgramCard(p, prefs.preferred_hymnal_id, programs)).join('')}
       </div>
     </div>
   `;
@@ -74,28 +62,64 @@ export async function refreshPlannerView() {
   }
 }
 
-function renderProgramCard(program, preferredHymnalId, contextUsageMap) {
-  const formattedDate = new Date(program.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  const hymnList = program.program_hymn || [];
+function getProgramRepetitionWarnings(targetProgram, allPrograms) {
+  if (!targetProgram || !targetProgram.program_hymn || targetProgram.program_hymn.length === 0) {
+    return [];
+  }
 
-  // Check recent repetition warnings
-  const recentWarnings = [];
-  if (contextUsageMap && hymnList.length > 0) {
-    hymnList.forEach(ph => {
-      const hId = ph.hymn?.id || ph.hymn_id;
-      const stat = contextUsageMap.get(hId);
-      if (stat && stat.usedRecently) {
-        recentWarnings.push({
-          title: ph.hymn?.title_es || 'Himno',
-          daysAgo: stat.daysAgo,
-          lastDate: stat.lastDate
+  const targetDate = new Date(targetProgram.date);
+  const targetContextId = targetProgram.context_id;
+  const targetHymnList = targetProgram.program_hymn;
+
+  const otherPrograms = (allPrograms || []).filter(p => p.context_id === targetContextId && p.id !== targetProgram.id);
+  if (otherPrograms.length === 0) return [];
+
+  const warnings = [];
+
+  targetHymnList.forEach(ph => {
+    const hymn = ph.hymn;
+    const hymnId = ph.hymn?.id || ph.hymn_id;
+    if (!hymnId) return;
+
+    otherPrograms.forEach(otherProg => {
+      if (!otherProg.program_hymn) return;
+      const hasSameHymn = otherProg.program_hymn.some(oph => (oph.hymn?.id || oph.hymn_id) === hymnId);
+      if (!hasSameHymn) return;
+
+      const otherDate = new Date(otherProg.date);
+      const diffMs = targetDate.getTime() - otherDate.getTime();
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+      if (Math.abs(diffDays) <= 28) {
+        let msg = '';
+        if (diffDays > 0) {
+          msg = `Cantado hace ${diffDays} día(s) en "${otherProg.name || 'Programa'}" (${otherProg.date})`;
+        } else if (diffDays < 0) {
+          msg = `Programado ${Math.abs(diffDays)} día(s) después en "${otherProg.name || 'Programa'}" (${otherProg.date})`;
+        } else {
+          msg = `Misma fecha en "${otherProg.name || 'Programa'}" (${otherProg.date})`;
+        }
+
+        warnings.push({
+          title: hymn?.title_es || 'Himno',
+          msg
         });
       }
     });
-  }
+  });
+
+  return warnings;
+}
+
+function renderProgramCard(program, preferredHymnalId, allPrograms) {
+  const formattedDate = new Date(program.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const hymnList = program.program_hymn || [];
+
+  // Check recent repetition warnings relative to program.date excluding self
+  const recentWarnings = getProgramRepetitionWarnings(program, allPrograms);
 
   return `
-    <div class="card">
+    <div class="card program-card-container" data-prog-id="${program.id}">
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
         <div>
           <h3 style="font-size: 1.15rem; color: var(--text-main); font-weight: 600;">${program.name || 'Programa Musical'}</h3>
@@ -105,7 +129,15 @@ function renderProgramCard(program, preferredHymnalId, contextUsageMap) {
           </div>
         </div>
 
-        <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+          <button class="btn btn-gold btn-sm save-program-order-btn" data-id="${program.id}" style="display: none; align-items: center; gap: 0.3rem;">
+            💾 <span>Guardar Orden</span>
+          </button>
+
+          <button class="btn btn-secondary btn-sm edit-program-btn" data-id="${program.id}" title="Editar programa">
+            ✏️ <span>Editar</span>
+          </button>
+
           <button class="btn btn-secondary btn-sm export-program-btn" data-id="${program.id}">
             ${icons.music(14)}
             <span>Generar Ficha / Exportar</span>
@@ -119,9 +151,10 @@ function renderProgramCard(program, preferredHymnalId, contextUsageMap) {
 
       <div style="margin-top: 1rem;">
         <h4 style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Repertorio Seleccionado (${hymnList.length} himnos)</h4>
-        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+        <div class="hymn-rows-container" style="display: flex; flex-direction: column; gap: 0.4rem;">
           ${hymnList.length > 0 ? hymnList.map((ph, idx) => {
             const hymn = ph.hymn;
+            const hId = ph.hymn?.id || ph.hymn_id;
             let numberText = '';
             if (hymn && preferredHymnalId && hymn.hymnal_hymn) {
               const mapping = hymn.hymnal_hymn.find(hh => hh.hymnal_id === preferredHymnalId);
@@ -145,20 +178,20 @@ function renderProgramCard(program, preferredHymnalId, contextUsageMap) {
             }
 
             return `
-              <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-dark); border: 1px solid var(--border-color); padding: 0.5rem 0.75rem; border-radius: var(--radius-md);">
+              <div class="hymn-row-item" data-hymn-id="${hId}" style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-dark); border: 1px solid var(--border-color); padding: 0.5rem 0.75rem; border-radius: var(--radius-md);">
                 <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-main); font-size: 0.95rem;">
-                  <span style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600; width: 22px;">${idx + 1}.</span>
+                  <span class="hymn-row-index" style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600; width: 22px;">${idx + 1}.</span>
                   ${numberText}<strong>${hymn ? hymn.title_es : 'Himno'}</strong>
                   ${hymn && hymn.composer ? `<span style="color: var(--text-muted); font-size: 0.85rem;"> (${hymn.composer})</span>` : ''}
                   ${musicDetails}
                 </div>
 
-                <!-- Reorder buttons -->
+                <!-- Reorder buttons (Instant DOM swap) -->
                 <div style="display: flex; gap: 0.25rem;">
-                  <button class="reorder-hymn-up-btn" data-prog-id="${program.id}" data-index="${idx}" ${idx === 0 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.2rem 0.4rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">
+                  <button class="reorder-hymn-up-btn" ${idx === 0 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.2rem 0.4rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">
                     ▲
                   </button>
-                  <button class="reorder-hymn-down-btn" data-prog-id="${program.id}" data-index="${idx}" ${idx === hymnList.length - 1 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.2rem 0.4rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">
+                  <button class="reorder-hymn-down-btn" ${idx === hymnList.length - 1 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.2rem 0.4rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">
                     ▼
                   </button>
                 </div>
@@ -171,11 +204,11 @@ function renderProgramCard(program, preferredHymnalId, contextUsageMap) {
         ${recentWarnings.length > 0 ? `
           <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-top: 1rem;">
             <div style="font-weight: 600; color: var(--status-warning); font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem;">
-              ⚠️ Advertencia: Himnos cantados recientemente en este Contexto (menos de 28 días):
+              ⚠️ Advertencia: Himnos con repeticiones cercanas en este Contexto (dentro de 28 días):
             </div>
             <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.82rem; color: var(--text-main); display: flex; flex-direction: column; gap: 0.2rem;">
               ${recentWarnings.map(w => `
-                <li><strong>${w.title}</strong> — Cantado hace ${w.daysAgo} días (${w.lastDate})</li>
+                <li><strong>${w.title}</strong> — ${w.msg}</li>
               `).join('')}
             </ul>
           </div>
@@ -208,48 +241,121 @@ export function setupPlannerEvents() {
     });
   }
 
-  // Reordenar himno arriba ▲
+  // Configurar Himnario Preferido
+  if (configPrefBtn) {
+    configPrefBtn.addEventListener('click', async () => {
+      try {
+        const hymnals = await hymnalsService.getHymnals();
+        const currentPrefs = await authService.getUserPreferences();
+
+        createModal('Seleccionar Himnario Preferido para Tu Iglesia', `
+          <form style="display: flex; flex-direction: column; gap: 1rem;">
+            <div>
+              <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Himnario Principal</label>
+              <select id="select-pref-hymnal" style="width: 100%;">
+                <option value="">Ninguno seleccionado</option>
+                ${hymnals.map(h => `
+                  <option value="${h.id}" ${currentPrefs.preferred_hymnal_id === h.id ? 'selected' : ''}>${h.name} (${h.type === 'public' ? 'Oficial/Público' : 'Personal'})</option>
+                `).join('')}
+              </select>
+              <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.4rem;">
+                Los números de este himnario se asociarán automáticamente a las canciones al exportar tus programas.
+              </p>
+            </div>
+          </form>
+        `, async () => {
+          const selectedId = document.getElementById('select-pref-hymnal').value;
+          await authService.updateUserPreferences({
+            preferred_hymnal_id: selectedId || null
+          });
+          showToast('Himnario preferido actualizado.', 'success');
+          await refreshPlannerView();
+        });
+      } catch (err) {
+        showToast(`Error al abrir configuración de himnario: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // Helper para actualizar índices y botón de guardar en tarjeta de programa
+  const updateCardHymnIndices = (cardContainer) => {
+    if (!cardContainer) return;
+    const rows = Array.from(cardContainer.querySelectorAll('.hymn-row-item'));
+    rows.forEach((row, idx) => {
+      const idxSpan = row.querySelector('.hymn-row-index');
+      if (idxSpan) idxSpan.textContent = `${idx + 1}.`;
+
+      const upBtn = row.querySelector('.reorder-hymn-up-btn');
+      const downBtn = row.querySelector('.reorder-hymn-down-btn');
+      if (upBtn) {
+        upBtn.disabled = idx === 0;
+        upBtn.style.opacity = idx === 0 ? '0.3' : '1';
+        upBtn.style.cursor = idx === 0 ? 'not-allowed' : 'pointer';
+      }
+      if (downBtn) {
+        downBtn.disabled = idx === rows.length - 1;
+        downBtn.style.opacity = idx === rows.length - 1 ? '0.3' : '1';
+        downBtn.style.cursor = idx === rows.length - 1 ? 'not-allowed' : 'pointer';
+      }
+    });
+
+    const saveBtn = cardContainer.querySelector('.save-program-order-btn');
+    if (saveBtn) {
+      saveBtn.style.display = 'inline-flex';
+    }
+  };
+
+  // Reordenar himno arriba ▲ (local e instantáneo en DOM)
   document.querySelectorAll('.reorder-hymn-up-btn').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const progId = e.currentTarget.getAttribute('data-prog-id');
-      const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
-      if (isNaN(idx) || idx <= 0) return;
-
-      const programs = await programsService.getPrograms();
-      const prog = programs.find(p => p.id === progId);
-      if (!prog || !prog.program_hymn) return;
-
-      const hymnIds = prog.program_hymn.map(ph => ph.hymn_id);
-      // Swap idx and idx - 1
-      const temp = hymnIds[idx];
-      hymnIds[idx] = hymnIds[idx - 1];
-      hymnIds[idx - 1] = temp;
-
-      await programsService.updateProgramHymnOrder(progId, hymnIds);
-      showToast('Orden del repertorio actualizado.', 'success');
-      await refreshPlannerView();
+    btn.addEventListener('click', (e) => {
+      const row = e.currentTarget.closest('.hymn-row-item');
+      if (!row) return;
+      const prevRow = row.previousElementSibling;
+      if (prevRow && prevRow.classList.contains('hymn-row-item')) {
+        row.parentNode.insertBefore(row, prevRow);
+        updateCardHymnIndices(row.closest('.program-card-container'));
+      }
     });
   });
 
-  // Reordenar himno abajo ▼
+  // Reordenar himno abajo ▼ (local e instantáneo en DOM)
   document.querySelectorAll('.reorder-hymn-down-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const row = e.currentTarget.closest('.hymn-row-item');
+      if (!row) return;
+      const nextRow = row.nextElementSibling;
+      if (nextRow && nextRow.classList.contains('hymn-row-item')) {
+        row.parentNode.insertBefore(nextRow, row);
+        updateCardHymnIndices(row.closest('.program-card-container'));
+      }
+    });
+  });
+
+  // Guardar orden de tarjeta en lote
+  document.querySelectorAll('.save-program-order-btn').forEach(btn => {
     btn.addEventListener('click', async (e) => {
-      const progId = e.currentTarget.getAttribute('data-prog-id');
-      const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
-      
-      const programs = await programsService.getPrograms();
-      const prog = programs.find(p => p.id === progId);
-      if (!prog || !prog.program_hymn || idx >= prog.program_hymn.length - 1) return;
+      const progId = e.currentTarget.getAttribute('data-id');
+      const card = e.currentTarget.closest('.program-card-container');
+      if (!card) return;
 
-      const hymnIds = prog.program_hymn.map(ph => ph.hymn_id);
-      // Swap idx and idx + 1
-      const temp = hymnIds[idx];
-      hymnIds[idx] = hymnIds[idx + 1];
-      hymnIds[idx + 1] = temp;
+      const rows = Array.from(card.querySelectorAll('.hymn-row-item'));
+      const hymnIds = rows.map(r => r.getAttribute('data-hymn-id')).filter(Boolean);
 
-      await programsService.updateProgramHymnOrder(progId, hymnIds);
-      showToast('Orden del repertorio actualizado.', 'success');
-      await refreshPlannerView();
+      try {
+        await programsService.updateProgramHymnOrder(progId, hymnIds);
+        showToast('¡Orden del programa guardado con éxito!', 'success');
+        await refreshPlannerView();
+      } catch (err) {
+        showToast(`Error al guardar orden: ${err.message}`, 'error');
+      }
+    });
+  });
+
+  // Editar Programa Modal
+  document.querySelectorAll('.edit-program-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const progId = e.currentTarget.getAttribute('data-id');
+      openProgramFormModal({ isEdit: true, progId });
     });
   });
 
@@ -271,116 +377,10 @@ export function setupPlannerEvents() {
     });
   });
 
-  if (configPrefBtn) {
-    configPrefBtn.addEventListener('click', async () => {
-      const hymnals = await hymnalsService.getHymnals();
-      const currentPrefs = await authService.getUserPreferences();
-
-      createModal('Seleccionar Himnario Preferido para Tu Iglesia', `
-        <form style="display: flex; flex-direction: column; gap: 1rem;">
-          <div>
-            <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Himnario Principal</label>
-            <select id="select-pref-hymnal" style="width: 100%;">
-              <option value="">Ninguno seleccionado</option>
-              ${hymnals.map(h => `
-                <option value="${h.id}" ${currentPrefs.preferred_hymnal_id === h.id ? 'selected' : ''}>${h.name} (${h.type === 'public' ? 'Oficial/Público' : 'Personal'})</option>
-              `).join('')}
-            </select>
-            <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.4rem;">
-              Los números de este himnario se asociarán automáticamente a las canciones al exportar tus programas.
-            </p>
-          </div>
-        </form>
-      `, async () => {
-        const selectedId = document.getElementById('select-pref-hymnal').value;
-        await authService.updateUserPreferences({
-          preferred_hymnal_id: selectedId || null
-        });
-        showToast('Himnario preferido actualizado.', 'success');
-        await refreshPlannerView();
-      });
-    });
-  }
-
+  // Crear Programa Modal
   if (createBtn) {
-    createBtn.addEventListener('click', async () => {
-      const contexts = await contextsService.getContexts();
-      const hymns = await hymnsService.getHymns();
-
-      if (contexts.length === 0) {
-        showToast('Debes crear al menos un Contexto (ej. Culto Dominical) antes de planificar un programa.', 'warning');
-        window.location.hash = '#/contexts';
-        return;
-      }
-
-      let currentUsageMap = await programsService.getContextRecentUsageStats(contexts[0].id);
-
-      const renderHymnCheckboxes = (usageMap) => {
-        return hymns.map(h => {
-          const stat = usageMap.get(h.id);
-          const isRecent = stat && stat.usedRecently;
-          const badgeText = isRecent ? `<span class="badge badge-gold" style="font-size: 0.72rem; margin-left: 0.4rem;">⚠️ Cantado hace ${stat.daysAgo} días</span>` : '';
-
-          return `
-            <label style="display: flex; align-items: center; justify-content: space-between; padding: 0.35rem 0.5rem; cursor: pointer; color: var(--text-main); font-size: 0.88rem; border-bottom: 1px solid rgba(255,255,255,0.03);">
-              <span style="display: flex; align-items: center; gap: 0.5rem; flex: 1;">
-                <input type="checkbox" class="hymn-select-chk" value="${h.id}" />
-                <span>🎵 <strong>${h.title_es}</strong> ${h.composer ? `(${h.composer})` : ''}</span>
-              </span>
-              ${badgeText}
-            </label>
-          `;
-        }).join('');
-      };
-
-      createModal('Crear Programa Musical (Armado por Nombre)', `
-        <form id="program-form" style="display: flex; flex-direction: column; gap: 1rem;">
-          <div>
-            <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Nombre del Programa</label>
-            <input type="text" id="prog-name" placeholder="ej. Culto Dominical de Alabanza" style="width: 100%;" />
-          </div>
-
-          <div>
-            <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Fecha *</label>
-            <input type="date" id="prog-date" required value="${new Date().toISOString().split('T')[0]}" style="width: 100%;" />
-          </div>
-
-          <div>
-            <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Contexto *</label>
-            <select id="prog-context" style="width: 100%;">
-              ${contexts.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
-            </select>
-          </div>
-
-          <div>
-            <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Seleccionar Himnos por Nombre</label>
-            <div id="prog-hymns-checkboxes-container" style="max-height: 200px; overflow-y: auto; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.5rem;">
-              ${renderHymnCheckboxes(currentUsageMap)}
-            </div>
-          </div>
-        </form>
-      `, async () => {
-        const name = document.getElementById('prog-name').value;
-        const date = document.getElementById('prog-date').value;
-        const contextId = document.getElementById('prog-context').value;
-        const selectedHymnIds = Array.from(document.querySelectorAll('.hymn-select-chk:checked')).map(cb => cb.value);
-
-        await programsService.createProgram(contextId, date, name, selectedHymnIds);
-        showToast('Programa musical creado exitosamente.', 'success');
-        await refreshPlannerView();
-      });
-
-      setTimeout(() => {
-        const ctxSelect = document.getElementById('prog-context');
-        const listContainer = document.getElementById('prog-hymns-checkboxes-container');
-        if (ctxSelect && listContainer) {
-          ctxSelect.addEventListener('change', async (e) => {
-            const ctxId = e.target.value;
-            currentUsageMap = await programsService.getContextRecentUsageStats(ctxId);
-            listContainer.innerHTML = renderHymnCheckboxes(currentUsageMap);
-          });
-        }
-      }, 100);
+    createBtn.addEventListener('click', () => {
+      openProgramFormModal({ isEdit: false });
     });
   }
 
@@ -604,5 +604,263 @@ async function openIntelligenceModal(contexts, initialContextId) {
         }
       });
     }
+  }, 100);
+}
+
+async function openProgramFormModal({ isEdit = false, progId = null }) {
+  const contexts = await contextsService.getContexts();
+  const allHymns = await hymnsService.getHymns();
+  const allPrograms = await programsService.getPrograms();
+
+  if (contexts.length === 0) {
+    showToast('Debes crear al menos un Contexto (ej. Culto Dominical) antes de planificar un programa.', 'warning');
+    window.location.hash = '#/contexts';
+    return;
+  }
+
+  let prog = null;
+  if (isEdit && progId) {
+    prog = allPrograms.find(p => p.id === progId);
+  }
+
+  const initialContextId = prog ? prog.context_id : contexts[0].id;
+  const initialName = prog ? (prog.name || '') : '';
+  const initialDate = prog ? prog.date : new Date().toISOString().split('T')[0];
+
+  // Preservar exactamente el orden de los himnos existentes al editar
+  let selectedHymns = [];
+  if (isEdit && prog && prog.program_hymn) {
+    selectedHymns = prog.program_hymn
+      .map(ph => ph.hymn || allHymns.find(h => h.id === ph.hymn_id))
+      .filter(Boolean);
+  }
+
+  const getModalHymnWarning = (hymnId, targetDateStr, targetContextId) => {
+    if (!hymnId || !targetDateStr || !targetContextId) return null;
+    const targetDate = new Date(targetDateStr);
+    const otherProgs = (allPrograms || []).filter(p => p.context_id === targetContextId && (!isEdit || p.id !== progId));
+
+    for (const otherProg of otherProgs) {
+      if (!otherProg.program_hymn) continue;
+      const hasHymn = otherProg.program_hymn.some(oph => (oph.hymn?.id || oph.hymn_id) === hymnId);
+      if (!hasHymn) continue;
+
+      const otherDate = new Date(otherProg.date);
+      const diffMs = targetDate.getTime() - otherDate.getTime();
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+      if (Math.abs(diffDays) <= 28) {
+        if (diffDays > 0) return `⚠️ Cantado hace ${diffDays} día(s) (${otherProg.date})`;
+        if (diffDays < 0) return `⚠️ Programado ${Math.abs(diffDays)} día(s) después (${otherProg.date})`;
+        return `⚠️ Misma fecha en otro programa (${otherProg.date})`;
+      }
+    }
+    return null;
+  };
+
+  const title = isEdit ? '✏️ Editar Programa Musical' : '➕ Crear Programa Musical';
+
+  const modalHtml = `
+    <form id="modal-program-form" style="display: flex; flex-direction: column; gap: 1rem;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div>
+          <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Nombre del Programa</label>
+          <input type="text" id="modal-prog-name" value="${initialName}" placeholder="ej. Culto Dominical de Alabanza" style="width: 100%;" />
+        </div>
+
+        <div>
+          <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Fecha *</label>
+          <input type="date" id="modal-prog-date" required value="${initialDate}" style="width: 100%;" />
+        </div>
+      </div>
+
+      <div>
+        <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Contexto *</label>
+        <select id="modal-prog-context" style="width: 100%;">
+          ${contexts.map(c => `<option value="${c.id}" ${c.id === initialContextId ? 'selected' : ''}>${c.name}</option>`).join('')}
+        </select>
+      </div>
+
+      <!-- SECCIÓN: REPERTORIO SELECCIONADO Y REORDENABLE -->
+      <div style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.75rem; background: var(--bg-dark);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <label style="font-size: 0.88rem; color: var(--primary); font-weight: 600;">
+            🎵 Repertorio Seleccionado (Orden del Programa)
+          </label>
+          <span id="modal-selected-count" class="badge badge-gold" style="font-size: 0.75rem;">0 himnos</span>
+        </div>
+
+        <div id="modal-selected-hymns-container" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.35rem;">
+        </div>
+      </div>
+
+      <!-- SECCIÓN: BUSCADOR Y LISTA DE HIMNOS DE SELECCIÓN -->
+      <div>
+        <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">Buscar y Agregar Himnos</label>
+        <input type="text" id="modal-prog-hymn-search" placeholder="🔍 Buscar por título o compositor..." style="width: 100%; margin-bottom: 0.5rem; padding: 0.4rem 0.6rem; font-size: 0.85rem;" />
+        <div id="modal-hymns-checkboxes-container" style="max-height: 160px; overflow-y: auto; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.5rem;">
+        </div>
+      </div>
+    </form>
+  `;
+
+  createModal(title, modalHtml, async () => {
+    const name = document.getElementById('modal-prog-name').value;
+    const date = document.getElementById('modal-prog-date').value;
+    const contextId = document.getElementById('modal-prog-context').value;
+    const hymnIds = selectedHymns.map(h => h.id);
+
+    if (isEdit && progId) {
+      await programsService.updateProgram(progId, { name, date, contextId, hymnIds });
+      showToast('Programa musical actualizado exitosamente.', 'success');
+    } else {
+      await programsService.createProgram(contextId, date, name, hymnIds);
+      showToast('Programa musical creado exitosamente.', 'success');
+    }
+    await refreshPlannerView();
+  });
+
+  setTimeout(() => {
+    const selectedContainer = document.getElementById('modal-selected-hymns-container');
+    const selectedCountBadge = document.getElementById('modal-selected-count');
+    const checkboxesContainer = document.getElementById('modal-hymns-checkboxes-container');
+    const searchInput = document.getElementById('modal-prog-hymn-search');
+    const contextSelect = document.getElementById('modal-prog-context');
+    const dateInput = document.getElementById('modal-prog-date');
+
+    const updateSelectedRepertoireUI = () => {
+      if (!selectedContainer) return;
+      if (selectedCountBadge) selectedCountBadge.textContent = `${selectedHymns.length} himno(s)`;
+
+      if (selectedHymns.length === 0) {
+        selectedContainer.innerHTML = `<p style="color: var(--text-muted); font-size: 0.85rem; font-style: italic; margin: 0.4rem 0;">Ningún himno seleccionado aún. Usa la lista de abajo para agregar.</p>`;
+        return;
+      }
+
+      selectedContainer.innerHTML = selectedHymns.map((h, idx) => `
+        <div class="modal-rep-item" style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); padding: 0.35rem 0.6rem; border-radius: var(--radius-sm);">
+          <div style="display: flex; align-items: center; gap: 0.4rem; color: var(--text-main); font-size: 0.88rem; overflow: hidden; flex: 1;">
+            <span style="color: var(--text-muted); font-weight: 600; min-width: 22px;">${idx + 1}.</span>
+            <strong style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${h.title_es}</strong>
+            ${h.composer ? `<span style="color: var(--text-muted); font-size: 0.78rem;">(${h.composer})</span>` : ''}
+          </div>
+
+          <div style="display: flex; gap: 0.25rem; align-items: center;">
+            <button type="button" class="modal-rep-up-btn" data-idx="${idx}" ${idx === 0 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.72rem; cursor: pointer;">▲</button>
+            <button type="button" class="modal-rep-down-btn" data-idx="${idx}" ${idx === selectedHymns.length - 1 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''} style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.72rem; cursor: pointer;">▼</button>
+            <button type="button" class="modal-rep-remove-btn" data-idx="${idx}" style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: var(--status-danger); padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.72rem; font-weight: bold; cursor: pointer;">✕</button>
+          </div>
+        </div>
+      `).join('');
+
+      selectedContainer.querySelectorAll('.modal-rep-up-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(e.currentTarget.getAttribute('data-idx'), 10);
+          if (idx > 0) {
+            const temp = selectedHymns[idx];
+            selectedHymns[idx] = selectedHymns[idx - 1];
+            selectedHymns[idx - 1] = temp;
+            updateSelectedRepertoireUI();
+          }
+        });
+      });
+
+      selectedContainer.querySelectorAll('.modal-rep-down-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(e.currentTarget.getAttribute('data-idx'), 10);
+          if (idx < selectedHymns.length - 1) {
+            const temp = selectedHymns[idx];
+            selectedHymns[idx] = selectedHymns[idx + 1];
+            selectedHymns[idx + 1] = temp;
+            updateSelectedRepertoireUI();
+          }
+        });
+      });
+
+      selectedContainer.querySelectorAll('.modal-rep-remove-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(e.currentTarget.getAttribute('data-idx'), 10);
+          const removed = selectedHymns.splice(idx, 1)[0];
+          if (removed && checkboxesContainer) {
+            const chk = checkboxesContainer.querySelector(`.modal-hymn-chk[value="${removed.id}"]`);
+            if (chk) chk.checked = false;
+          }
+          updateSelectedRepertoireUI();
+        });
+      });
+    };
+
+    const renderCheckboxesList = () => {
+      if (!checkboxesContainer) return;
+      const selectedSet = new Set(selectedHymns.map(h => h.id));
+      const targetDate = dateInput ? dateInput.value : initialDate;
+      const targetContext = contextSelect ? contextSelect.value : initialContextId;
+
+      checkboxesContainer.innerHTML = allHymns.map(h => {
+        const isChecked = selectedSet.has(h.id);
+        const warningMsg = getModalHymnWarning(h.id, targetDate, targetContext);
+        const badgeText = warningMsg ? `<span class="badge badge-gold" style="font-size: 0.72rem; margin-left: 0.4rem;">${warningMsg}</span>` : '';
+
+        return `
+          <label style="display: flex; align-items: center; justify-content: space-between; padding: 0.35rem 0.5rem; cursor: pointer; color: var(--text-main); font-size: 0.88rem; border-bottom: 1px solid rgba(255,255,255,0.03);">
+            <span style="display: flex; align-items: center; gap: 0.5rem; flex: 1;">
+              <input type="checkbox" class="modal-hymn-chk" value="${h.id}" ${isChecked ? 'checked' : ''} />
+              <span>🎵 <strong>${h.title_es}</strong> ${h.composer ? `(${h.composer})` : ''}</span>
+            </span>
+            ${badgeText}
+          </label>
+        `;
+      }).join('');
+
+      checkboxesContainer.querySelectorAll('.modal-hymn-chk').forEach(chk => {
+        chk.addEventListener('change', (e) => {
+          const hymnId = e.target.value;
+          if (e.target.checked) {
+            const found = allHymns.find(h => h.id === hymnId);
+            if (found && !selectedHymns.some(sh => sh.id === hymnId)) {
+              selectedHymns.push(found);
+            }
+          } else {
+            selectedHymns = selectedHymns.filter(sh => sh.id !== hymnId);
+          }
+          updateSelectedRepertoireUI();
+        });
+      });
+
+      filterHymns();
+    };
+
+    const filterHymns = () => {
+      if (!checkboxesContainer || !searchInput) return;
+      const query = normalizeText(searchInput.value);
+      const labels = checkboxesContainer.querySelectorAll('label');
+      labels.forEach(label => {
+        const text = normalizeText(label.textContent || '');
+        if (!query || text.includes(query)) {
+          label.style.display = 'flex';
+        } else {
+          label.style.display = 'none';
+        }
+      });
+    };
+
+    if (contextSelect) {
+      contextSelect.addEventListener('change', () => {
+        renderCheckboxesList();
+      });
+    }
+
+    if (dateInput) {
+      dateInput.addEventListener('change', () => {
+        renderCheckboxesList();
+      });
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener('input', filterHymns);
+    }
+
+    updateSelectedRepertoireUI();
+    renderCheckboxesList();
   }, 100);
 }
