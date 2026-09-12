@@ -5,7 +5,7 @@ import { hymnalsService } from '../services/hymnals.service.js';
 import { authService } from '../services/auth.service.js';
 import { createModal, showToast } from '../components/modal.js';
 import { icons } from '../utils/icons.js';
-import { normalizeText } from '../utils/text.utils.js';
+import { normalizeText, debounce } from '../utils/text.utils.js';
 
 export async function renderPlannerView() {
   const programs = await programsService.getPrograms();
@@ -857,7 +857,7 @@ async function openProgramFormModal({ isEdit = false, progId = null }) {
     }
 
     if (searchInput) {
-      searchInput.addEventListener('input', filterHymns);
+      searchInput.addEventListener('input', debounce(filterHymns, 200));
     }
 
     updateSelectedRepertoireUI();

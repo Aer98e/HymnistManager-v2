@@ -2,7 +2,7 @@ import { hymnsService } from '../services/hymns.service.js';
 import { hymnalsService } from '../services/hymnals.service.js';
 import { authService } from '../services/auth.service.js';
 import { createModal, showConfirmModal, showToast } from '../components/modal.js';
-import { normalizeText } from '../utils/text.utils.js';
+import { normalizeText, debounce } from '../utils/text.utils.js';
 import { generateUserHymnCSVTemplate, parseAndValidateUserHymnCSV } from '../utils/user_hymn_csv.utils.js';
 import { icons } from '../utils/icons.js';
 
@@ -212,6 +212,7 @@ export function setupHymnsEvents() {
   const pageSize = 100;
   let allFilteredHymns = [];
   let currentSelectedType = 'all';
+  let filterRequestId = 0;
 
   const renderPaginatedResults = async () => {
     const currentUser = await authService.getCurrentUser();
@@ -270,6 +271,7 @@ export function setupHymnsEvents() {
   };
 
   const filterHandler = async () => {
+    const requestId = ++filterRequestId;
     const rawQuery = searchInput ? searchInput.value : '';
     const normalizedQuery = normalizeText(rawQuery);
     currentSelectedType = typeFilter ? typeFilter.value : 'all';
@@ -283,6 +285,8 @@ export function setupHymnsEvents() {
     } else {
       hymns = await hymnsService.getHymns('', catId);
     }
+
+    if (requestId !== filterRequestId) return;
 
     // Busqueda permisiva que ignora tildes, acentos, comas y signos
     if (normalizedQuery) {
@@ -306,7 +310,8 @@ export function setupHymnsEvents() {
     await renderPaginatedResults();
   };
 
-  if (searchInput) searchInput.addEventListener('input', filterHandler);
+  const debouncedFilterHandler = debounce(filterHandler, 300);
+  if (searchInput) searchInput.addEventListener('input', debouncedFilterHandler);
   if (typeFilter) typeFilter.addEventListener('change', filterHandler);
   if (categoryFilter) categoryFilter.addEventListener('change', filterHandler);
 
@@ -607,10 +612,11 @@ export function setupHymnsEvents() {
           };
 
           if (filterInput && listContainer) {
-            filterInput.addEventListener('input', (e) => {
+            const debouncedListFilter = debounce((e) => {
               listContainer.innerHTML = renderList(e.target.value);
               attachDeleteEvents();
-            });
+            }, 200);
+            filterInput.addEventListener('input', debouncedListFilter);
           }
 
           attachDeleteEvents();

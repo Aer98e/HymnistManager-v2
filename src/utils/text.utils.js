@@ -12,6 +12,15 @@ export function normalizeText(text) {
     .trim();
 }
 
+export function debounce(callback, delay = 300) {
+  let timeoutId;
+
+  return (...args) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => callback(...args), delay);
+  };
+}
+
 /**
  * Calcula la similitud relativa entre dos cadenas usando coincidencia difusa (token overlap + subcadena).
  * @returns {number} Coeficiente entre 0.0 y 1.0

@@ -1,7 +1,7 @@
 import { hymnalsService } from '../services/hymnals.service.js';
 import { hymnsService } from '../services/hymns.service.js';
 import { createModal, showToast, showConfirmModal } from './modal.js';
-import { normalizeText } from '../utils/text.utils.js';
+import { normalizeText, debounce } from '../utils/text.utils.js';
 
 export async function openCustomHymnalBuilderModal(hymnalId = null, onSaveSuccess = null) {
   showToast('Cargando catálogo y plantilla...', 'info');
@@ -466,10 +466,11 @@ export async function openCustomHymnalBuilderModal(hymnalId = null, onSaveSucces
     const saveBtn = document.getElementById('builder-save-btn');
 
     if (searchInput) {
-      searchInput.addEventListener('input', (e) => {
+      const updateSearch = debounce((e) => {
         searchQuery = e.target.value;
         renderCatalog();
-      });
+      }, 300);
+      searchInput.addEventListener('input', updateSearch);
     }
 
     if (sourceSelect) {

@@ -1,5 +1,6 @@
 import { supabase } from '../config/supabase.js';
 import { normalizeText, computeHymnMatchScore } from '../utils/text.utils.js';
+import { authService } from './auth.service.js';
 
 function parseCSVLine(line, delimiter = ',') {
   const result = [];
@@ -68,7 +69,7 @@ export const hymnalsService = {
   },
 
   async createHymnal(name, languageId, isPublic = false) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await authService.getCurrentUser();
     if (!user) throw new Error('Usuario no autenticado');
 
     const isAdmin = user.app_metadata?.role === 'admin';
@@ -102,7 +103,7 @@ export const hymnalsService = {
   },
 
   async deleteHymnal(hymnalId) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await authService.getCurrentUser();
     if (!user) throw new Error('Usuario no autenticado');
 
     // 1. Delete hymnal_hymn links for this hymnal
@@ -124,7 +125,7 @@ export const hymnalsService = {
   },
 
   async duplicateHymnal(hymnalId, customName = null) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await authService.getCurrentUser();
     if (!user) throw new Error('Usuario no autenticado');
 
     // 1. Fetch source hymnal and its hymns
@@ -185,7 +186,7 @@ export const hymnalsService = {
   },
 
   async getUserLooseHymns() {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await authService.getCurrentUser();
     if (!user) return [];
 
     const { data, error } = await supabase
@@ -336,7 +337,7 @@ export const hymnalsService = {
   },
 
   async importHymnalFromCSV(hymnalName, csvContent, languageId = 1, isPublic = false, reuseExisting = true) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await authService.getCurrentUser();
     if (!user) throw new Error('Usuario no autenticado');
 
     // 1. Create the hymnal container
@@ -536,7 +537,7 @@ export const hymnalsService = {
   },
 
   async relinkHymnalHymn(hymnalId, oldHymnId, newPublicHymnId) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await authService.getCurrentUser();
     if (!user) throw new Error('Usuario no autenticado');
 
     // 1. Update hymnal_hymn link
@@ -563,4 +564,3 @@ export const hymnalsService = {
     return this.relinkHymnalHymn(hymnalId, oldHymnId, newPublicHymnId);
   }
 };
-

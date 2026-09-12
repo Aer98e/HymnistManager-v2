@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabase.js';
+import { authService } from './auth.service.js';
 
 export const contextsService = {
   async getContexts() {
@@ -15,7 +16,7 @@ export const contextsService = {
   },
 
   async createContext(name) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await authService.getCurrentUser();
     if (!user) throw new Error('Usuario no autenticado');
 
     // 1. Create a private category for new hymns for this context

@@ -64,7 +64,7 @@ class AppRouter {
         eventSetup = setupPlannerEvents;
         break;
       case '/admin':
-        if (!currentUser || currentUser.app_metadata?.role !== 'admin') {
+        if ((await authService.getCurrentUser({ forceRefresh: true }))?.app_metadata?.role !== 'admin') {
           window.location.hash = '#/dashboard';
           return;
         }

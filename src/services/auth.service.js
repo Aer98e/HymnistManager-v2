@@ -1,5 +1,23 @@
 import { supabase } from '../config/supabase.js';
 
+const USER_CACHE_TTL_MS = 60_000;
+let cachedUser = null;
+let cachedAt = 0;
+let pendingUserRequest = null;
+
+async function refreshCachedUser() {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error) {
+    cachedUser = null;
+    cachedAt = 0;
+    return null;
+  }
+
+  cachedUser = user;
+  cachedAt = Date.now();
+  return user;
+}
+
 export const authService = {
   async signUp(email, password, name) {
     const { data, error } = await supabase.auth.signUp({
@@ -33,10 +51,18 @@ export const authService = {
     return data.session;
   },
 
-  async getCurrentUser() {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error) return null;
-    return user;
+  async getCurrentUser({ forceRefresh = false } = {}) {
+    const cacheIsFresh = cachedAt > 0 && Date.now() - cachedAt < USER_CACHE_TTL_MS;
+    if (!forceRefresh && cacheIsFresh) return cachedUser;
+
+    if (pendingUserRequest) return pendingUserRequest;
+
+    pendingUserRequest = refreshCachedUser();
+    try {
+      return await pendingUserRequest;
+    } finally {
+      pendingUserRequest = null;
+    }
   },
 
   onAuthStateChange(callback) {
@@ -77,3 +103,16 @@ export const authService = {
   }
 
 };
+
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_OUT') {
+    cachedUser = null;
+    cachedAt = 0;
+    return;
+  }
+
+  if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+    cachedUser = session?.user ?? null;
+    cachedAt = Date.now();
+  }
+});

@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabase.js';
+import { authService } from './auth.service.js';
 
 export const hymnsService = {
   async getHymns(searchQuery = '', categoryId = null) {
@@ -35,7 +36,7 @@ export const hymnsService = {
   },
 
   async createHymn(hymnData) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await authService.getCurrentUser();
     const payload = {
       ...hymnData,
       created_by: user ? user.id : null,
@@ -53,7 +54,7 @@ export const hymnsService = {
   },
 
   async updateHymn(hymnId, hymnData) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await authService.getCurrentUser();
     if (!user) throw new Error('Usuario no autenticado');
 
     const { data, error } = await supabase
@@ -74,7 +75,7 @@ export const hymnsService = {
   },
 
   async getUserHymnAttributes(hymnId) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await authService.getCurrentUser();
     if (!user) return null;
 
     const { data, error } = await supabase
@@ -94,7 +95,7 @@ export const hymnsService = {
   },
 
   async saveUserHymnAttributes(hymnId, attributes) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await authService.getCurrentUser();
     if (!user) throw new Error('Usuario no autenticado');
 
     const payload = {
@@ -132,7 +133,7 @@ export const hymnsService = {
   },
 
   async createCategory(name) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await authService.getCurrentUser();
     const { data, error } = await supabase
       .from('categories')
       .insert({
@@ -187,7 +188,7 @@ export const hymnsService = {
   },
 
   async deleteHymn(hymnId) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await authService.getCurrentUser();
     if (!user) throw new Error('Usuario no autenticado');
 
     const { error } = await supabase
@@ -224,7 +225,7 @@ export const hymnsService = {
   },
 
   async getUserHymnsAll() {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await authService.getCurrentUser();
     if (!user) return [];
 
     const { data, error } = await supabase
@@ -237,7 +238,7 @@ export const hymnsService = {
   },
 
   async bulkUpsertUserHymns(validRecords = []) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await authService.getCurrentUser();
     if (!user) throw new Error('Usuario no autenticado');
 
     if (!validRecords || validRecords.length === 0) return true;
@@ -264,7 +265,7 @@ export const hymnsService = {
   },
 
   async getUserHymnListFull() {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await authService.getCurrentUser();
     if (!user) return [];
 
     const { data, error } = await supabase
@@ -281,7 +282,7 @@ export const hymnsService = {
   },
 
   async deleteUserHymn(hymnId) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await authService.getCurrentUser();
     if (!user) throw new Error('Usuario no autenticado');
 
     const { error } = await supabase
@@ -294,4 +295,3 @@ export const hymnsService = {
     return true;
   }
 };
-
